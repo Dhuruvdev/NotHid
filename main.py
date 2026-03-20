@@ -92,7 +92,8 @@ TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN environment variable is not set.")
 
-GUILD_ID = os.environ.get("GUILD_ID")
+_guild_id_raw = os.environ.get("GUILD_ID", "").strip()
+GUILD_ID = _guild_id_raw if _guild_id_raw.isdigit() else None
 
 EXTENSIONS = [
     "cogs.utility",

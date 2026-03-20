@@ -255,3 +255,243 @@ def generate_card(
     result.save(output, "PNG", optimize=True)
     output.seek(0)
     return output
+
+
+def generate_profile_card(
+    username: str,
+    display_name: str,
+    user_id: str,
+    account_age_days: int,
+    created_str: str,
+    joined_str: str,
+    joined_server_delta: str,
+    roles: list,
+    avatar_bytes: Optional[bytes] = None,
+    is_bot: bool = False,
+    is_booster: bool = False,
+    is_flagged: bool = False,
+    message_count: int = 0,
+    warning_count: int = 0,
+    top_role_color: tuple = (124, 58, 237),
+) -> io.BytesIO:
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bg = Image.new("RGBA", (W, H), (*COLORS["bg"], 255))
+
+    _glow_circle(bg, -40, -40, 380, top_role_color, alpha=45)
+    _glow_circle(bg, W + 40, H + 20, 280, COLORS["accent_blue"], alpha=30)
+
+    mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, H - 1], radius=20, fill=255)
+    img.paste(bg, mask=mask)
+
+    draw = ImageDraw.Draw(img)
+    _draw_gradient_bar(img, 0, 0, W, 4, top_role_color, COLORS["accent_blue"], radius=0)
+
+    PAD = 36
+    f_logo = _font(20, bold=True)
+    f_subtitle = _font(11)
+    f_label = _font(9)
+    f_username = _font(22, bold=True)
+    f_meta = _font(12)
+    f_section = _font(10)
+    f_value = _font(13, bold=True)
+    f_role = _font(10)
+    f_footer = _font(11)
+
+    draw.text((PAD, 22), "NOTHIDE", font=f_logo, fill=COLORS["text_primary"])
+    draw.text((PAD, 48), "Member Profile", font=f_subtitle, fill=COLORS["text_muted"])
+
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    ts_w = _text_width(draw, ts, f_subtitle)
+    draw.text((W - PAD - ts_w, 48), ts, font=f_subtitle, fill=COLORS["text_muted"])
+    draw.line([(PAD, 76), (W - PAD, 76)], fill=COLORS["border"], width=1)
+
+    AVATAR_SIZE = 88
+    avatar_x, avatar_y = PAD, 92
+    if avatar_bytes:
+        _paste_avatar(img, avatar_bytes, avatar_x, avatar_y, AVATAR_SIZE)
+    else:
+        draw.ellipse([avatar_x, avatar_y, avatar_x + AVATAR_SIZE, avatar_y + AVATAR_SIZE],
+                     fill=COLORS["surface2"])
+
+    name_x = avatar_x + AVATAR_SIZE + 20
+    draw.text((name_x, avatar_y + 2), display_name[:28], font=f_username, fill=COLORS["text_primary"])
+
+    badges = []
+    if is_bot:
+        badges.append(("BOT", COLORS["accent_blue"]))
+    if is_booster:
+        badges.append(("BOOSTER", (255, 105, 180)))
+    if is_flagged:
+        badges.append(("FLAGGED", COLORS["high"]))
+
+    badge_x = name_x
+    badge_y = avatar_y + 34
+    for badge_text, badge_color in badges:
+        bw = _text_width(draw, badge_text, f_label) + 14
+        _draw_rounded_rect(draw, (badge_x, badge_y, badge_x + bw, badge_y + 18),
+                           radius=9, fill=(*badge_color, 40), outline=(*badge_color, 180), outline_width=1)
+        draw.text((badge_x + bw // 2, badge_y + 9), badge_text, font=f_label,
+                  fill=badge_color, anchor="mm")
+        badge_x += bw + 8
+
+    draw.text((name_x, avatar_y + 60), f"@{username}  ·  {user_id}", font=f_meta, fill=COLORS["text_secondary"])
+
+    stats_y = avatar_y + AVATAR_SIZE + 24
+    draw.line([(PAD, stats_y - 8), (W - PAD, stats_y - 8)], fill=COLORS["border"], width=1)
+
+    stats = [
+        ("Account Age", f"{account_age_days}d"),
+        ("Created", created_str),
+        ("Joined Server", joined_str),
+        ("Server Tenure", joined_server_delta),
+        ("Messages", f"{message_count:,}"),
+        ("Warnings", str(warning_count)),
+    ]
+
+    col_w = (W - PAD * 2) // 3
+    for i, (label, value) in enumerate(stats):
+        col = i % 3
+        row = i // 3
+        sx = PAD + col * col_w
+        sy = stats_y + row * 56
+        draw.text((sx, sy), label.upper(), font=f_label, fill=COLORS["text_muted"])
+        val_color = COLORS["high"] if label == "Warnings" and warning_count > 0 else COLORS["text_primary"]
+        draw.text((sx, sy + 16), value, font=f_value, fill=val_color)
+
+    roles_y = stats_y + 118
+    draw.line([(PAD, roles_y - 8), (W - PAD, roles_y - 8)], fill=COLORS["border"], width=1)
+    draw.text((PAD, roles_y), "ROLES", font=f_label, fill=COLORS["text_muted"])
+
+    rx = PAD
+    ry = roles_y + 16
+    for role in roles[:8]:
+        color = role.get("color", (80, 80, 100))
+        rname = role["name"][:18]
+        rw = _text_width(draw, rname, f_role) + 16
+        if rx + rw > W - PAD:
+            break
+        _draw_rounded_rect(draw, (rx, ry, rx + rw, ry + 20),
+                           radius=10, fill=(*color, 35), outline=(*color, 160), outline_width=1)
+        draw.text((rx + rw // 2, ry + 10), rname, font=f_role, fill=color, anchor="mm")
+        rx += rw + 8
+
+    footer_y = H - 36
+    draw.line([(PAD, footer_y), (W - PAD, footer_y)], fill=COLORS["border"], width=1)
+    footer_text = "NotHide — Detect What Others Miss"
+    ft_w = _text_width(draw, footer_text, f_footer)
+    draw.text((W // 2 - ft_w // 2, footer_y + 10), footer_text, font=f_footer, fill=COLORS["text_muted"])
+
+    result = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    result.paste(img, mask=mask)
+    output = io.BytesIO()
+    result.save(output, "PNG", optimize=True)
+    output.seek(0)
+    return output
+
+
+def generate_activity_card(
+    username: str,
+    display_name: str,
+    user_id: str,
+    avatar_bytes: Optional[bytes] = None,
+    total_messages: int = 0,
+    last_seen_str: str = "Unknown",
+    top_channels: Optional[list] = None,
+) -> io.BytesIO:
+    if top_channels is None:
+        top_channels = []
+
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bg = Image.new("RGBA", (W, H), (*COLORS["bg"], 255))
+
+    _glow_circle(bg, -40, -40, 360, COLORS["accent_blue"], alpha=45)
+    _glow_circle(bg, W + 40, H + 20, 280, COLORS["accent_purple"], alpha=30)
+
+    mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, H - 1], radius=20, fill=255)
+    img.paste(bg, mask=mask)
+
+    draw = ImageDraw.Draw(img)
+    _draw_gradient_bar(img, 0, 0, W, 4, COLORS["accent_blue"], COLORS["accent_purple"], radius=0)
+
+    PAD = 36
+    f_logo = _font(20, bold=True)
+    f_subtitle = _font(11)
+    f_label = _font(9)
+    f_username = _font(20, bold=True)
+    f_meta = _font(12)
+    f_big_num = _font(56, bold=True)
+    f_bar_label = _font(11)
+    f_bar_val = _font(11, bold=True)
+    f_footer = _font(11)
+
+    draw.text((PAD, 22), "NOTHIDE", font=f_logo, fill=COLORS["text_primary"])
+    draw.text((PAD, 48), "Activity Report", font=f_subtitle, fill=COLORS["text_muted"])
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    ts_w = _text_width(draw, ts, f_subtitle)
+    draw.text((W - PAD - ts_w, 48), ts, font=f_subtitle, fill=COLORS["text_muted"])
+    draw.line([(PAD, 76), (W - PAD, 76)], fill=COLORS["border"], width=1)
+
+    AVATAR_SIZE = 72
+    avatar_x, avatar_y = PAD, 92
+    if avatar_bytes:
+        _paste_avatar(img, avatar_bytes, avatar_x, avatar_y, AVATAR_SIZE)
+    else:
+        draw.ellipse([avatar_x, avatar_y, avatar_x + AVATAR_SIZE, avatar_y + AVATAR_SIZE],
+                     fill=COLORS["surface2"])
+
+    name_x = avatar_x + AVATAR_SIZE + 18
+    draw.text((name_x, avatar_y + 4), display_name[:28], font=f_username, fill=COLORS["text_primary"])
+    draw.text((name_x, avatar_y + 32), f"@{username}  ·  {user_id}", font=f_meta, fill=COLORS["text_secondary"])
+    draw.text((name_x, avatar_y + 54), f"Last seen: {last_seen_str}", font=f_meta, fill=COLORS["text_muted"])
+
+    sep_y = avatar_y + AVATAR_SIZE + 20
+    draw.line([(PAD, sep_y), (W - PAD, sep_y)], fill=COLORS["border"], width=1)
+
+    msg_cx = PAD + 120
+    draw.text((msg_cx, sep_y + 12), f"{total_messages:,}", font=f_big_num,
+              fill=COLORS["accent_blue"], anchor="mt")
+    draw.text((msg_cx, sep_y + 74), "TOTAL MESSAGES", font=f_label,
+              fill=COLORS["text_muted"], anchor="mt")
+
+    ch_x = PAD + 280
+    ch_y = sep_y + 12
+    draw.text((ch_x, ch_y), "CHANNEL BREAKDOWN", font=f_label, fill=COLORS["text_muted"])
+
+    if not top_channels:
+        draw.text((ch_x, ch_y + 18), "No channel data tracked yet.", font=f_bar_label,
+                  fill=COLORS["text_muted"])
+    else:
+        max_count = max(c["count"] for c in top_channels) or 1
+        bar_max_w = W - PAD - ch_x - 80
+        for i, ch_data in enumerate(top_channels[:4]):
+            by = ch_y + 18 + i * 36
+            ch_name = ch_data["name"][:22]
+            count = ch_data["count"]
+            pct = count / max_count
+            fill_w = max(6, int(pct * bar_max_w))
+
+            draw.text((ch_x, by), ch_name, font=f_bar_label, fill=COLORS["text_secondary"])
+            bar_y2 = by + 16
+            _draw_rounded_rect(draw, (ch_x, bar_y2, ch_x + bar_max_w, bar_y2 + 10),
+                               radius=5, fill=COLORS["surface2"])
+            _draw_gradient_bar(img, ch_x, bar_y2, ch_x + fill_w, bar_y2 + 10,
+                               COLORS["accent_blue"], COLORS["accent_purple"], radius=5)
+            count_str = f"{count:,}"
+            cw = _text_width(draw, count_str, f_bar_val)
+            draw.text((ch_x + bar_max_w + 6, bar_y2), count_str, font=f_bar_val,
+                      fill=COLORS["text_secondary"])
+
+    footer_y = H - 36
+    draw.line([(PAD, footer_y), (W - PAD, footer_y)], fill=COLORS["border"], width=1)
+    footer_text = "NotHide — Data tracked from bot join  ·  Resets on member rejoin"
+    ft_w = _text_width(draw, footer_text, f_footer)
+    draw.text((W // 2 - ft_w // 2, footer_y + 10), footer_text, font=f_footer, fill=COLORS["text_muted"])
+
+    result = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    result.paste(img, mask=mask)
+    output = io.BytesIO()
+    result.save(output, "PNG", optimize=True)
+    output.seek(0)
+    return output
