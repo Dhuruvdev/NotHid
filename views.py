@@ -57,7 +57,7 @@ class AnalysisView(discord.ui.View):
                 inline=False,
             )
 
-        embed.set_footer(text="NotHide — Probabilistic risk analysis. Not a definitive verdict.")
+        embed.set_footer(text="Cybork — Probabilistic risk analysis. Not a definitive verdict.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="Why this score?", style=discord.ButtonStyle.secondary, emoji="❓", custom_id="why_score")
@@ -68,7 +68,7 @@ class AnalysisView(discord.ui.View):
             description=explanation,
             color=discord.Color.blurple(),
         )
-        embed.set_footer(text="NotHide uses probabilistic signals — not accusations.")
+        embed.set_footer(text="Cybork uses probabilistic signals — not accusations.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="Enable Auto Detection ⚡", style=discord.ButtonStyle.primary, custom_id="premium")
@@ -83,11 +83,11 @@ class AnalysisView(discord.ui.View):
                 "` → ` Custom threshold configuration\n"
                 "` → ` Audit log integration\n"
                 "` → ` Role-based auto-actions\n\n"
-                "*Upgrade to NotHide Premium to unlock this feature.*"
+                "*Upgrade to Cybork Premium to unlock this feature.*"
             ),
             color=discord.Color.og_blurple(),
         )
-        embed.set_footer(text="NotHide Premium — Coming Soon")
+        embed.set_footer(text="Cybork Premium — Coming Soon")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def on_timeout(self):

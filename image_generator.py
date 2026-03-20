@@ -145,7 +145,7 @@ def generate_card(
     f_breakdown = _font(11)
 
     logo_y = 22
-    draw.text((PAD, logo_y), "NOTHIDE", font=f_logo, fill=COLORS["text_primary"])
+    draw.text((PAD, logo_y), "CYBORK", font=f_logo, fill=COLORS["text_primary"])
     draw.text((PAD, logo_y + 26), "User Risk Intelligence", font=f_subtitle, fill=COLORS["text_muted"])
 
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -243,7 +243,7 @@ def generate_card(
 
     footer_y = H - 36
     draw.line([(PAD, footer_y), (W - PAD, footer_y)], fill=COLORS["border"], width=1)
-    footer_text = "NotHide — Detect What Others Miss"
+    footer_text = "Cybork — Detect What Others Miss"
     ft_w = _text_width(draw, footer_text, f_footer)
     draw.text((W // 2 - ft_w // 2, footer_y + 10), footer_text,
               font=f_footer, fill=COLORS["text_muted"])
@@ -298,7 +298,7 @@ def generate_profile_card(
     f_role = _font(10)
     f_footer = _font(11)
 
-    draw.text((PAD, 22), "NOTHIDE", font=f_logo, fill=COLORS["text_primary"])
+    draw.text((PAD, 22), "CYBORK", font=f_logo, fill=COLORS["text_primary"])
     draw.text((PAD, 48), "Member Profile", font=f_subtitle, fill=COLORS["text_muted"])
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -378,7 +378,7 @@ def generate_profile_card(
 
     footer_y = H - 36
     draw.line([(PAD, footer_y), (W - PAD, footer_y)], fill=COLORS["border"], width=1)
-    footer_text = "NotHide — Detect What Others Miss"
+    footer_text = "Cybork — Detect What Others Miss"
     ft_w = _text_width(draw, footer_text, f_footer)
     draw.text((W // 2 - ft_w // 2, footer_y + 10), footer_text, font=f_footer, fill=COLORS["text_muted"])
 
@@ -426,7 +426,7 @@ def generate_activity_card(
     f_bar_val = _font(11, bold=True)
     f_footer = _font(11)
 
-    draw.text((PAD, 22), "NOTHIDE", font=f_logo, fill=COLORS["text_primary"])
+    draw.text((PAD, 22), "CYBORK", font=f_logo, fill=COLORS["text_primary"])
     draw.text((PAD, 48), "Activity Report", font=f_subtitle, fill=COLORS["text_muted"])
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     ts_w = _text_width(draw, ts, f_subtitle)
@@ -485,7 +485,7 @@ def generate_activity_card(
 
     footer_y = H - 36
     draw.line([(PAD, footer_y), (W - PAD, footer_y)], fill=COLORS["border"], width=1)
-    footer_text = "NotHide — Data tracked from bot join  ·  Resets on member rejoin"
+    footer_text = "Cybork — Data tracked from bot join  ·  Resets on member rejoin"
     ft_w = _text_width(draw, footer_text, f_footer)
     draw.text((W // 2 - ft_w // 2, footer_y + 10), footer_text, font=f_footer, fill=COLORS["text_muted"])
 

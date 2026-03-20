@@ -11,7 +11,7 @@ class AlertsCog(commands.Cog, name="Alerts"):
 
     alerts_group = app_commands.Group(
         name="alerts",
-        description="Configure NotHide alert notifications.",
+        description="Configure Cybork alert notifications.",
     )
 
     @alerts_group.command(name="risk", description="Toggle risk alerts for high-score joins.")

@@ -15,7 +15,7 @@ COMMANDS_DATA = {
         "description": "General utility and information commands",
         "commands": [
             ("/ping", "Check the bot's response latency"),
-            ("/about", "Learn about NotHide and its features"),
+            ("/about", "Learn about Cybork and its features"),
             ("/help", "View the interactive command menu"),
         ],
     },
@@ -100,7 +100,7 @@ class CategoryView(discord.ui.LayoutView):
                 discord.ui.TextDisplay(
                     "Use `/help` to return to the main menu"
                 ),
-                discord.ui.TextDisplay("-# Powered by NotHide"),
+                discord.ui.TextDisplay("-# Powered by Cybork"),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 prev_btn,
                 back_btn,
@@ -133,7 +133,7 @@ class HelpMenuView(discord.ui.LayoutView):
             )
 
         module_select = discord.ui.Select(
-            placeholder="NotHide Command Modules",
+            placeholder="Cybork Command Modules",
             options=options,
             custom_id="help_module_select",
         )
@@ -159,7 +159,7 @@ class HelpMenuView(discord.ui.LayoutView):
 
         self.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay("# NotHide Command Menu"),
+                discord.ui.TextDisplay("# Cybork Command Menu"),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.TextDisplay(
                     "**Command Information**\n"
@@ -176,7 +176,7 @@ class HelpMenuView(discord.ui.LayoutView):
                     "Visit our **[Support Server](https://discord.gg/)** for assistance."
                 ),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
-                discord.ui.TextDisplay("Developer: **NotHide**"),
+                discord.ui.TextDisplay("Developer: **Cybork**"),
                 discord.ui.Separator(),
                 module_select,
                 invite_btn,

@@ -120,7 +120,7 @@ class OwnerCog(commands.Cog, name="Owner"):
         owner_mention = f"<@{owner_id}>" if owner_id else "Not set"
 
         embed = discord.Embed(
-            title="NotHide — Bot Info",
+            title="Cybork — Bot Info",
             color=discord.Color.from_rgb(124, 58, 237),
             timestamp=datetime.now(timezone.utc),
         )
@@ -137,7 +137,7 @@ class OwnerCog(commands.Cog, name="Owner"):
             embed.add_field(name="Uptime", value=f"`{h}h {m}m {s}s`", inline=True)
         embed.add_field(name="discord.py", value=f"`{discord.__version__}`", inline=True)
         embed.add_field(name="Python", value=f"`{sys.version.split()[0]}`", inline=True)
-        embed.set_footer(text="NotHide Owner Panel")
+        embed.set_footer(text="Cybork Owner Panel")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     # ── Announce ─────────────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ class OwnerCog(commands.Cog, name="Owner"):
             color=discord.Color.from_rgb(124, 58, 237),
             timestamp=datetime.now(timezone.utc),
         )
-        embed.set_footer(text="NotHide Announcement")
+        embed.set_footer(text="Cybork Announcement")
         await channel.send(embed=embed)
         await interaction.response.send_message(f"✅ Announcement sent to {channel.mention}.", ephemeral=True)
 
@@ -160,7 +160,7 @@ class OwnerCog(commands.Cog, name="Owner"):
     @app_commands.command(name="shutdown", description="[Owner] Gracefully shut down the bot.")
     @is_owner()
     async def shutdown(self, interaction: discord.Interaction):
-        await interaction.response.send_message("⚠️ Shutting down NotHide...", ephemeral=True)
+        await interaction.response.send_message("⚠️ Shutting down Cybork...", ephemeral=True)
         await self.bot.close()
 
     # ── Error handler ─────────────────────────────────────────────────────────

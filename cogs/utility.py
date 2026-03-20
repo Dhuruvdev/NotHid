@@ -16,15 +16,15 @@ class UtilityCog(commands.Cog, name="Utility"):
             description=f"WebSocket latency: `{latency_ms}ms`",
             color=discord.Color.blurple(),
         )
-        embed.set_footer(text="NotHide")
+        embed.set_footer(text="Cybork")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="about", description="Learn about NotHide and what it does.")
+    @app_commands.command(name="about", description="Learn about Cybork and what it does.")
     async def about(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="About NotHide",
+            title="About Cybork",
             description=(
-                "**NotHide** is a risk intelligence tool for Discord servers.\n\n"
+                "**Cybork** is a risk intelligence tool for Discord servers.\n\n"
                 "It analyzes members using multiple signal layers:\n"
                 "` → ` **Static signals** — Account age, username structure\n"
                 "` → ` **Behavioral similarity** — Pattern matching with recent joins\n"
@@ -34,10 +34,10 @@ class UtilityCog(commands.Cog, name="Utility"):
             ),
             color=discord.Color.og_blurple(),
         )
-        embed.set_footer(text="NotHide — Detect What Others Miss")
+        embed.set_footer(text="Cybork — Detect What Others Miss")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="help", description="Browse all NotHide commands in an interactive menu.")
+    @app_commands.command(name="help", description="Browse all Cybork commands in an interactive menu.")
     async def help(self, interaction: discord.Interaction):
         await interaction.response.send_message(view=HelpMenuView())
 

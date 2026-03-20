@@ -9,7 +9,7 @@ class ConfigCog(commands.Cog, name="Config"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="setup", description="View the current server configuration for NotHide.")
+    @app_commands.command(name="setup", description="View the current server configuration for Cybork.")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def setup(self, interaction: discord.Interaction):
         cfg = storage.get_server_config(interaction.guild_id)
@@ -31,7 +31,7 @@ class ConfigCog(commands.Cog, name="Config"):
             return "✅ Enabled" if val else "❌ Disabled"
 
         embed = discord.Embed(
-            title=f"NotHide Configuration — {guild.name}",
+            title=f"Cybork Configuration — {guild.name}",
             color=discord.Color.blurple(),
         )
         embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
@@ -61,7 +61,7 @@ class ConfigCog(commands.Cog, name="Config"):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="setalerts", description="Set the channel where NotHide alerts are posted.")
+    @app_commands.command(name="setalerts", description="Set the channel where Cybork alerts are posted.")
     @app_commands.describe(channel="The channel for alerts")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def setalerts(self, interaction: discord.Interaction, channel: discord.TextChannel):

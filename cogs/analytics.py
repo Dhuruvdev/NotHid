@@ -60,7 +60,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
             value=f"`{age_days // 365}y {(age_days % 365) // 30}mo`\n*Created {guild.created_at.strftime('%b %d, %Y')}*",
             inline=False,
         )
-        embed.set_footer(text="NotHide Analytics")
+        embed.set_footer(text="Cybork Analytics")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="topusers", description="View the most active members in this server.")
@@ -74,7 +74,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
         )
 
         if not top:
-            embed.description = "No message activity tracked yet.\n*NotHide records messages from the point it joined.*"
+            embed.description = "No message activity tracked yet.\n*Cybork records messages from the point it joined.*"
         else:
             lines = []
             medals = ["🥇", "🥈", "🥉"]
@@ -85,7 +85,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
                 lines.append(f"{medal} **{name}** — `{data['total']:,}` messages")
             embed.description = "\n".join(lines)
 
-        embed.set_footer(text="NotHide Analytics · Data tracked since bot joined")
+        embed.set_footer(text="Cybork Analytics · Data tracked since bot joined")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="inactive", description="List members with no tracked activity.")
@@ -109,7 +109,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
 
         embed = discord.Embed(
             title=f"Inactive Members — {interaction.guild.name}",
-            description=f"Members with **zero tracked messages** since NotHide joined.",
+            description=f"Members with **zero tracked messages** since Cybork joined.",
             color=discord.Color.orange(),
         )
         if threshold_days:
@@ -127,7 +127,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
                 inline=False,
             )
 
-        embed.set_footer(text="NotHide Analytics · Use /autokick set to configure auto-removal")
+        embed.set_footer(text="Cybork Analytics · Use /autokick set to configure auto-removal")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="channels", description="View channel activity overview (dead vs active).")
@@ -172,7 +172,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
                 inline=False,
             )
 
-        embed.set_footer(text="NotHide Analytics · Tracked since bot joined")
+        embed.set_footer(text="Cybork Analytics · Tracked since bot joined")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="report", description="Generate a full server health report.")
@@ -217,7 +217,7 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
                 top_lines.append(f"` → ` **{name}** `{data['total']:,}` msgs")
             embed.add_field(name="📊 Top Members", value="\n".join(top_lines), inline=True)
 
-        embed.set_footer(text="NotHide Server Health Report")
+        embed.set_footer(text="Cybork Server Health Report")
         await interaction.followup.send(embed=embed)
 
 

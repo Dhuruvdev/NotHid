@@ -100,7 +100,7 @@ class UserCog(commands.Cog, name="User"):
             color=discord.Color.from_rgb(*top_role_color),
         )
         embed.set_image(url="attachment://profile.png")
-        embed.set_footer(text="NotHide — Detect What Others Miss")
+        embed.set_footer(text="Cybork — Detect What Others Miss")
         await interaction.followup.send(embed=embed, file=file)
 
     @app_commands.command(name="activity", description="View a member's message activity report.")
@@ -142,7 +142,7 @@ class UserCog(commands.Cog, name="User"):
             color=discord.Color.blurple(),
         )
         embed.set_image(url="attachment://activity.png")
-        embed.set_footer(text="NotHide tracks messages since the bot joined  ·  Data resets on rejoin")
+        embed.set_footer(text="Cybork tracks messages since the bot joined  ·  Data resets on rejoin")
         await interaction.followup.send(embed=embed, file=file)
 
 

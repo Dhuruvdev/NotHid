@@ -52,7 +52,7 @@ class RiskCog(commands.Cog, name="Risk"):
             color=_risk_color(result["classification"]),
         )
         embed.set_image(url="attachment://analysis_card.png")
-        embed.set_footer(text="NotHide — Results are probabilistic, not definitive.")
+        embed.set_footer(text="Cybork — Results are probabilistic, not definitive.")
         await interaction.followup.send(embed=embed, file=file, view=AnalysisView(result, user))
 
     @app_commands.command(name="risk", description="Get a quick LOW/MEDIUM/HIGH risk classification for a member.")
@@ -137,7 +137,7 @@ class RiskCog(commands.Cog, name="Risk"):
         embed.add_field(name="Behavioral Score", value=f"`{sim_score}/25`", inline=True)
         embed.add_field(name="Cluster Score", value=f"`{cluster_score}/26`", inline=True)
         embed.add_field(name="Account Age", value=f"`{age_days}d`", inline=True)
-        embed.set_footer(text="NotHide — Probabilistic analysis. Not a definitive verdict.")
+        embed.set_footer(text="Cybork — Probabilistic analysis. Not a definitive verdict.")
         await interaction.followup.send(embed=embed, file=file)
 
     @app_commands.command(name="behavior", description="Analyze a member's behavioral patterns.")
@@ -185,7 +185,7 @@ class RiskCog(commands.Cog, name="Risk"):
             value="\n".join(pattern_lines),
             inline=False,
         )
-        embed.set_footer(text="NotHide — Behavioral data collected since bot joined")
+        embed.set_footer(text="Cybork — Behavioral data collected since bot joined")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="trustscore", description="Calculate a reputation/trust score for a member.")

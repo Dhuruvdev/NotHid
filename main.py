@@ -28,9 +28,9 @@ LEVEL_STYLES = {
 }
 
 LOGGER_COLORS = {
-    "nothide":          ANSI["green"],
-    "nothide.boot":     ANSI["blue"],
-    "nothide.cogs":     ANSI["cyan"],
+    "cybork":          ANSI["green"],
+    "cybork.boot":     ANSI["blue"],
+    "cybork.cogs":     ANSI["cyan"],
     "discord":          ANSI["grey"],
     "discord.gateway":  ANSI["grey"],
     "discord.client":   ANSI["grey"],
@@ -38,7 +38,7 @@ LOGGER_COLORS = {
 }
 
 
-class NotHideFormatter(logging.Formatter):
+class CyborkFormatter(logging.Formatter):
     WIDTH = 80
 
     def format(self, record: logging.LogRecord) -> str:
@@ -70,7 +70,7 @@ class NotHideFormatter(logging.Formatter):
 
 def _setup_logging():
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(NotHideFormatter())
+    handler.setFormatter(CyborkFormatter())
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)
@@ -84,9 +84,9 @@ def _setup_logging():
 
 _setup_logging()
 
-log = logging.getLogger("nothide")
-boot_log = logging.getLogger("nothide.boot")
-cog_log = logging.getLogger("nothide.cogs")
+log = logging.getLogger("cybork")
+boot_log = logging.getLogger("cybork.boot")
+cog_log = logging.getLogger("cybork.cogs")
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
@@ -113,7 +113,7 @@ intents.members = True
 intents.message_content = True
 
 
-class NotHideBot(commands.Bot):
+class CyborkBot(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix=commands.when_mentioned,
@@ -156,7 +156,7 @@ class NotHideBot(commands.Bot):
     async def on_ready(self):
         sep = f"{ANSI['green']}{'━' * 60}{ANSI['reset']}"
         print(sep)
-        log.info(f"NotHide is online   →   {self.user}  ({self.user.id})")
+        log.info(f"Cybork is online   →   {self.user}  ({self.user.id})")
         log.info(f"Guilds: {len(self.guilds)}   •   Latency: {round(self.latency * 1000)}ms")
         print(sep)
         await self.change_presence(
@@ -190,8 +190,8 @@ class NotHideBot(commands.Bot):
         log.error(f"Unhandled error in event: {event_method}", exc_info=True)
 
 
-bot = NotHideBot()
+bot = CyborkBot()
 
 if __name__ == "__main__":
-    print(f"\n{ANSI['bold']}{ANSI['green']}  NotHide Bot  —  Starting up...{ANSI['reset']}\n")
+    print(f"\n{ANSI['bold']}{ANSI['green']}  Cybork Bot  —  Starting up...{ANSI['reset']}\n")
     bot.run(TOKEN, log_handler=None)

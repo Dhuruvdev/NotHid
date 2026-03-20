@@ -77,7 +77,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
         embed.add_field(name="Total Warnings", value=f"`{total}`", inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
-        embed.set_footer(text=f"Warning ID: {entry['id']}  ·  NotHide Moderation")
+        embed.set_footer(text=f"Warning ID: {entry['id']}  ·  Cybork Moderation")
         embed.set_thumbnail(url=user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
 
@@ -123,7 +123,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         embed.add_field(name="Duration", value=f"`{_duration_label(td)}`", inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="NotHide Moderation")
+        embed.set_footer(text="Cybork Moderation")
         await interaction.response.send_message(embed=embed)
         await _send_mod_log(self.bot, interaction.guild, embed)
 
@@ -148,7 +148,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="NotHide Moderation")
+        embed.set_footer(text="Cybork Moderation")
 
         await interaction.response.send_message(embed=embed)
         try:
@@ -184,7 +184,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         embed.add_field(name="Delete History", value=f"`{delete_days}d`", inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="NotHide Moderation")
+        embed.set_footer(text="Cybork Moderation")
 
         await interaction.response.send_message(embed=embed)
         try:
