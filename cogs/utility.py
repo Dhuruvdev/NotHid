@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from help_view import HelpMenuView
 import emojis_loader as E
+import config_loader
 from checks import get_owner_id
 
 WHITE = discord.Color.from_rgb(255, 255, 255)
@@ -17,6 +18,28 @@ async def _resolve_is_owner(bot: commands.Bot, user_id: int) -> bool:
         except Exception:
             return False
     return user_id == owner_id
+
+
+async def _build_help_view(bot: commands.Bot, user_id: int) -> HelpMenuView:
+    is_owner = await _resolve_is_owner(bot, user_id)
+
+    owner_id = config_loader.get_owner_id()
+    owner_name: str | None = None
+    if owner_id:
+        try:
+            owner_user = bot.get_user(owner_id) or await bot.fetch_user(owner_id)
+            owner_name = owner_user.display_name or owner_user.name
+        except Exception:
+            owner_name = str(owner_id)
+
+    support_invite = config_loader.get_support_invite()
+
+    return HelpMenuView(
+        is_owner=is_owner,
+        owner_name=owner_name,
+        owner_id=owner_id,
+        support_invite=support_invite,
+    )
 
 
 class UtilityCog(commands.Cog, name="Utility"):
@@ -42,8 +65,8 @@ class UtilityCog(commands.Cog, name="Utility"):
 
     @app_commands.command(name="help", description="Browse all Cybork commands in an interactive menu.")
     async def help_slash(self, interaction: discord.Interaction):
-        is_owner = await _resolve_is_owner(self.bot, interaction.user.id)
-        await interaction.response.send_message(view=HelpMenuView(is_owner=is_owner))
+        view = await _build_help_view(self.bot, interaction.user.id)
+        await interaction.response.send_message(view=view)
 
     # ── Prefix Commands ───────────────────────────────────────────────────────
 
@@ -64,8 +87,8 @@ class UtilityCog(commands.Cog, name="Utility"):
 
     @commands.command(name="help", aliases=["h", "commands"])
     async def help_prefix(self, ctx: commands.Context):
-        is_owner = await _resolve_is_owner(self.bot, ctx.author.id)
-        await ctx.reply(view=HelpMenuView(is_owner=is_owner), mention_author=False)
+        view = await _build_help_view(self.bot, ctx.author.id)
+        await ctx.reply(view=view, mention_author=False)
 
     @commands.command(name="botinfo")
     async def botinfo_prefix(self, ctx: commands.Context):
@@ -102,14 +125,32 @@ class UtilityCog(commands.Cog, name="Utility"):
         if isinstance(error, commands.CommandNotFound):
             return
         if isinstance(error, commands.MissingPermissions):
+            missing = ", ".join(
+                p.replace("_", " ").title() for p in error.missing_permissions
+            )
             embed = discord.Embed(
-                description=f"{E.get('error', '❌')} You don't have permission to use this command.",
+                description=f"{E.get('lock', '🔒')} You need **{missing}** permission to use this command.",
                 color=discord.Color.red(),
             )
             await ctx.reply(embed=embed, mention_author=False)
         elif isinstance(error, commands.BotMissingPermissions):
+            missing = ", ".join(
+                p.replace("_", " ").title() for p in error.missing_permissions
+            )
             embed = discord.Embed(
-                description=f"{E.get('error', '❌')} I don't have the required permissions for this action.",
+                description=f"{E.get('error', '❌')} I need **{missing}** permission to do that.",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+        elif isinstance(error, commands.MissingRequiredArgument):
+            embed = discord.Embed(
+                description=f"{E.get('info', 'ℹ️')} Missing argument: `{error.param.name}`. Use `>help` for usage.",
+                color=discord.Color.orange(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+        elif isinstance(error, commands.BadArgument):
+            embed = discord.Embed(
+                description=f"{E.get('error', '❌')} Invalid argument. Use `>help` for usage.",
                 color=discord.Color.red(),
             )
             await ctx.reply(embed=embed, mention_author=False)

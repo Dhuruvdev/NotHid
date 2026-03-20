@@ -410,6 +410,51 @@ class OwnerCog(commands.Cog, name="Owner"):
         )
         await ctx.reply(embed=embed, mention_author=False)
 
+    # ── Set Support Invite ────────────────────────────────────────────────────
+
+    @commands.command(name="setsupport")
+    async def setsupport(self, ctx: commands.Context, *, invite_url: str = ""):
+        """
+        >setsupport <invite_url>  — Set the support server invite shown in >help.
+        Use >setsupport clear to remove it. Only usable by the configured owner.
+        """
+        if not await self._is_owner(ctx.author.id):
+            embed = discord.Embed(
+                description=f"{E.get('lock', '🔒')} This command is restricted to the bot owner.",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        url = invite_url.strip()
+
+        if url.lower() == "clear" or not url:
+            config_loader.set_support_invite(None)
+            embed = discord.Embed(
+                description=f"{E.get('success', '✅')} Support server invite cleared.",
+                color=discord.Color.green(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        if not (url.startswith("https://discord.gg/") or url.startswith("https://discord.com/")):
+            embed = discord.Embed(
+                description=(
+                    f"{E.get('error', '❌')} Invalid invite URL. "
+                    f"Must start with `https://discord.gg/` or `https://discord.com/`."
+                ),
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        config_loader.set_support_invite(url)
+        embed = discord.Embed(
+            description=f"{E.get('success', '✅')} Support server invite set to <{url}>.",
+            color=discord.Color.green(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
     # ── Error Handler ─────────────────────────────────────────────────────────
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):

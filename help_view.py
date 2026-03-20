@@ -20,26 +20,31 @@ COMMANDS_DATA = {
         "label": "Moderation",
         "emoji": E.get("shield", "🛡️"),
         "description": "Server moderation commands",
+        "perms_note": "Requires Moderate Members / Kick / Ban permissions.",
         "commands": [
-            (">warn @member [reason]",          "Issue a warning to a member"),
-            (">mute @member <duration> [reason]","Timeout a member (e.g. 10m, 2h, 1d)"),
-            (">kick @member [reason]",           "Kick a member from the server"),
-            (">ban @member [reason]",            "Ban a member from the server"),
-            (">lock [#channel] [reason]",        "Lock a channel for members"),
-            (">unlock [#channel] [reason]",      "Unlock a channel for members"),
-            (">slowmode <seconds> [#channel]",   "Set slowmode delay"),
+            (">warn @member [reason]",           "Issue a warning — requires Moderate Members"),
+            (">mute @member <duration> [reason]", "Timeout a member — requires Moderate Members"),
+            (">kick @member [reason]",            "Kick a member — requires Kick Members"),
+            (">ban @member [reason]",             "Ban a member — requires Ban Members"),
+            (">lock [#channel] [reason]",         "Lock a channel — requires Manage Channels"),
+            (">unlock [#channel] [reason]",       "Unlock a channel — requires Manage Channels"),
+            (">slowmode <seconds> [#channel]",    "Set slowmode — requires Manage Channels"),
+            (">antispam <on/off>",                "Toggle anti-spam — requires Manage Server"),
+            (">antilink <on/off>",                "Toggle anti-link — requires Manage Server"),
+            (">capsfilter <on/off>",              "Toggle caps filter — requires Manage Server"),
         ],
     },
     "history": {
         "label": "History & Flags",
         "emoji": E.get("note", "📋"),
         "description": "Moderation history and flagging",
+        "perms_note": "Requires Moderate Members permission.",
         "commands": [
-            (">warnings @member",      "View all warnings for a member"),
-            (">history @member",       "Full moderation action history"),
-            (">notes @member [note]",  "View or add private mod notes"),
-            (">flag @member [reason]", "Flag a member as suspicious"),
-            (">unflag @member",        "Remove suspicious flag"),
+            (">warnings @member",      "View all warnings — requires Moderate Members"),
+            (">history @member",       "Full moderation action history — requires Moderate Members"),
+            (">notes @member [note]",  "View or add private mod notes — requires Moderate Members"),
+            (">flag @member [reason]", "Flag a member as suspicious — requires Moderate Members"),
+            (">unflag @member",        "Remove suspicious flag — requires Moderate Members"),
         ],
     },
     "analytics": {
@@ -51,7 +56,7 @@ COMMANDS_DATA = {
             (">topusers",          "Most active members"),
             (">inactive",          "Members with no activity"),
             (">channels",          "Channel activity overview"),
-            (">report",            "Full server health report"),
+            (">report",            "Full server health report — requires Manage Server"),
             (">profile @member",   "Member profile card"),
             (">activity @member",  "Member activity report"),
         ],
@@ -60,16 +65,15 @@ COMMANDS_DATA = {
         "label": "Configuration",
         "emoji": E.get("gear", "⚙️"),
         "description": "Bot and server configuration",
+        "perms_note": "Requires Manage Server permission.",
         "commands": [
-            (">setup",                "View current server configuration"),
-            (">setmodlog #channel",   "Set moderation log channel"),
-            (">setalerts #channel",   "Set alerts channel"),
-            (">antispam <on/off>",    "Toggle anti-spam filter"),
-            (">antilink <on/off>",    "Toggle anti-link filter"),
-            (">capsfilter <on/off>",  "Toggle caps filter"),
-            (">alertsrisk <on/off>",  "Toggle risk join alerts"),
-            (">autoroleset @role",    "Set auto-role on join"),
-            (">autokickset <days>",   "Set inactive member auto-kick threshold"),
+            (">setup",                "View current server configuration — requires Manage Server"),
+            (">setmodlog #channel",   "Set moderation log channel — requires Manage Server"),
+            (">setalerts #channel",   "Set alerts channel — requires Manage Server"),
+            (">alertsrisk <on/off>",  "Toggle risk join alerts — requires Manage Server"),
+            (">autoroleset @role",    "Set auto-role on join — requires Manage Roles"),
+            (">autokickset <days>",   "Set inactive member auto-kick threshold — requires Kick Members"),
+            (">autowarnspam <on/off>","Toggle auto-warn for spam — requires Manage Server"),
         ],
     },
     "utility": {
@@ -77,13 +81,12 @@ COMMANDS_DATA = {
         "emoji": E.get("bot", "🤖"),
         "description": "General utility commands",
         "commands": [
-            (">ping",                    "Check bot latency"),
-            (">about",                   "About Cybork"),
-            (">help",                    "This command menu"),
-            (">botinfo",                 "Detailed bot information"),
-            (">alertsstatus",            "View alert configuration"),
-            (">autorolestatus",          "View auto-role configuration"),
-            (">autowarnspam <on/off>",   "Toggle auto-warn for spam"),
+            (">ping",           "Check bot latency"),
+            (">about",          "About Cybork"),
+            (">help",           "This command menu"),
+            (">botinfo",        "Detailed bot information"),
+            (">alertsstatus",   "View alert configuration"),
+            (">autorolestatus", "View auto-role configuration"),
         ],
     },
 }
@@ -101,15 +104,12 @@ OWNER_COMMANDS_DATA = {
             ("/botinfo",                         "Detailed bot statistics panel"),
             ("/announce <#channel> <message>",   "Send an announcement embed"),
             ("/shutdown",                        "Gracefully shut down the bot"),
+            (">setowner [user_id]",              "Set bot owner ID in config.json"),
+            (">setguild [guild_id]",             "Set guild ID for instant slash sync"),
+            (">setsupport <invite_url>",         "Set support server invite URL"),
         ],
     },
 }
-
-ALL_COMMANDS = [
-    (cmd, desc)
-    for cat in COMMANDS_DATA.values()
-    for cmd, desc in cat["commands"]
-]
 
 PER_PAGE = 6
 
@@ -125,11 +125,22 @@ def _merged_data(is_owner: bool) -> dict:
 
 
 class CategoryView(discord.ui.LayoutView):
-    def __init__(self, category: str = "all", page: int = 1, is_owner: bool = False):
+    def __init__(
+        self,
+        category: str = "all",
+        page: int = 1,
+        is_owner: bool = False,
+        owner_name: str | None = None,
+        owner_id: int | None = None,
+        support_invite: str | None = None,
+    ):
         super().__init__(timeout=300)
         self.category = category
         self.page = page
         self._is_owner = is_owner
+        self._owner_name = owner_name
+        self._owner_id = owner_id
+        self._support_invite = support_invite
 
         merged = _merged_data(is_owner)
 
@@ -141,11 +152,13 @@ class CategoryView(discord.ui.LayoutView):
                 for cat in merged.values()
                 for cmd, desc in cat["commands"]
             ]
+            perms_note = ""
         else:
             data = merged[category]
             cat_label = data["label"]
             cat_emoji = data["emoji"]
             cmds = data["commands"]
+            perms_note = data.get("perms_note", "")
 
         total_pages = max(1, (len(cmds) + PER_PAGE - 1) // PER_PAGE)
         page_cmds = cmds[(page - 1) * PER_PAGE: page * PER_PAGE]
@@ -172,21 +185,34 @@ class CategoryView(discord.ui.LayoutView):
         _cat = category
         _page = page
         _owner = is_owner
+        _oname = owner_name
+        _oid = owner_id
+        _inv = support_invite
 
         async def _prev(interaction: discord.Interaction):
-            await interaction.response.edit_message(view=CategoryView(_cat, _page - 1, _owner))
+            await interaction.response.edit_message(
+                view=CategoryView(_cat, _page - 1, _owner, _oname, _oid, _inv)
+            )
 
         async def _back(interaction: discord.Interaction):
-            await interaction.response.edit_message(view=HelpMenuView(_owner))
+            await interaction.response.edit_message(
+                view=HelpMenuView(_owner, _oname, _oid, _inv)
+            )
 
         async def _next(interaction: discord.Interaction):
-            await interaction.response.edit_message(view=CategoryView(_cat, _page + 1, _owner))
+            await interaction.response.edit_message(
+                view=CategoryView(_cat, _page + 1, _owner, _oname, _oid, _inv)
+            )
 
         prev_btn.callback = _prev
         back_btn.callback = _back
         next_btn.callback = _next
 
-        owner_notice = "\n-# 🔐 Owner category visible — restricted commands" if is_owner and category == "owner" else ""
+        owner_notice = (
+            f"\n-# {E.get('owner', '🔐')} Owner category — restricted commands"
+            if is_owner and category == "owner" else ""
+        )
+        perms_line = f"\n-# {E.get('lock', '🔒')} {perms_note}" if perms_note else ""
 
         self.add_item(
             discord.ui.Container(
@@ -197,7 +223,8 @@ class CategoryView(discord.ui.LayoutView):
                 discord.ui.TextDisplay(cmd_text),
                 discord.ui.Separator(),
                 discord.ui.TextDisplay(
-                    f"-# {E.get('bot', '🤖')} Powered by Cybork  ·  Use `>help` to return to the main menu{owner_notice}"
+                    f"-# {E.get('bot', '🤖')} Powered by Cybork  ·  Use `>help` to return to the main menu"
+                    f"{perms_line}{owner_notice}"
                 ),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.ActionRow(prev_btn, back_btn, next_btn),
@@ -207,9 +234,18 @@ class CategoryView(discord.ui.LayoutView):
 
 
 class HelpMenuView(discord.ui.LayoutView):
-    def __init__(self, is_owner: bool = False):
+    def __init__(
+        self,
+        is_owner: bool = False,
+        owner_name: str | None = None,
+        owner_id: int | None = None,
+        support_invite: str | None = None,
+    ):
         super().__init__(timeout=300)
         self._is_owner = is_owner
+        self._owner_name = owner_name
+        self._owner_id = owner_id
+        self._support_invite = support_invite
 
         merged = _merged_data(is_owner)
 
@@ -238,10 +274,15 @@ class HelpMenuView(discord.ui.LayoutView):
         )
 
         _owner = is_owner
+        _oname = owner_name
+        _oid = owner_id
+        _inv = support_invite
 
         async def _on_select(interaction: discord.Interaction):
             selected = module_select.values[0]
-            await interaction.response.edit_message(view=CategoryView(selected, is_owner=_owner))
+            await interaction.response.edit_message(
+                view=CategoryView(selected, is_owner=_owner, owner_name=_oname, owner_id=_oid, support_invite=_inv)
+            )
 
         module_select.callback = _on_select
 
@@ -251,14 +292,33 @@ class HelpMenuView(discord.ui.LayoutView):
             url="https://discord.com/oauth2/authorize?scope=applications.commands+bot&permissions=274878024704",
             emoji=E.get("link", "🔗"),
         )
+
+        support_url = support_invite or "https://discord.gg/"
         support_btn = discord.ui.Button(
             label="Support Server",
             style=discord.ButtonStyle.link,
-            url="https://discord.gg/",
+            url=support_url,
             emoji=E.get("support", "📩"),
+            disabled=(not support_invite),
         )
 
-        owner_tag = f"\n-# {E.get('owner', '🔐')} Owner mode — restricted category visible" if is_owner else ""
+        owner_tag = (
+            f"\n-# {E.get('owner', '🔐')} Owner mode — restricted category visible"
+            if is_owner else ""
+        )
+
+        if owner_id and owner_name:
+            owner_line = (
+                f"\n{E.get('owner', '🔐')} **Developer:** "
+                f"[**{owner_name}**](https://discord.com/users/{owner_id})"
+            )
+        elif owner_id:
+            owner_line = (
+                f"\n{E.get('owner', '🔐')} **Developer:** "
+                f"[**{owner_id}**](https://discord.com/users/{owner_id})"
+            )
+        else:
+            owner_line = ""
 
         self.add_item(
             discord.ui.Container(
@@ -273,7 +333,8 @@ class HelpMenuView(discord.ui.LayoutView):
                 discord.ui.Separator(),
                 discord.ui.TextDisplay(
                     f"**Need Help?**\n"
-                    f"Visit our **[Support Server](https://discord.gg/)** or use `>about` for more info.{owner_tag}"
+                    f"Visit our **[Support Server]({support_url})** or use `>about` for more info."
+                    f"{owner_line}{owner_tag}"
                 ),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.ActionRow(module_select),

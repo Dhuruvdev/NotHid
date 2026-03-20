@@ -38,3 +38,13 @@ def set_guild_id(guild_id: int | str | None) -> None:
     data = _load()
     data["guild_id"] = guild_id
     _save(data)
+
+
+def get_support_invite() -> str | None:
+    return _load().get("support_invite") or None
+
+
+def set_support_invite(invite_url: str | None) -> None:
+    data = _load()
+    data["support_invite"] = invite_url
+    _save(data)
