@@ -5,8 +5,6 @@ from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timezone
 
-import storage
-import scoring
 import emojis_loader as E
 import config_loader
 from checks import is_owner, get_owner_id
@@ -27,35 +25,6 @@ EXTENSIONS = [
 ]
 
 
-def _fmt_dt(dt: datetime) -> str:
-    return dt.strftime("%b %d, %Y") if dt else "Unknown"
-
-
-def _age(dt: datetime) -> str:
-    if not dt:
-        return "?"
-    days = (datetime.now(timezone.utc) - dt).days
-    if days < 30:
-        return f"{days}d"
-    if days < 365:
-        return f"{days // 30}mo {days % 30}d"
-    y, rem = divmod(days, 365)
-    return f"{y}y {rem // 30}mo"
-
-
-def _risk_color(cls: str) -> discord.Color:
-    return {"LOW": discord.Color.green(), "MEDIUM": discord.Color.yellow(), "HIGH": discord.Color.red()}.get(
-        cls, discord.Color.greyple()
-    )
-
-
-def _risk_emoji(cls: str) -> str:
-    return {
-        "LOW":    E.get("risk_low",     "🟢"),
-        "MEDIUM": E.get("risk_medium",  "🟡"),
-        "HIGH":   E.get("risk_high",    "🔴"),
-    }.get(cls, E.get("risk_unknown", "⚪"))
-
 
 class OwnerCog(commands.Cog, name="Owner"):
     def __init__(self, bot: commands.Bot):
@@ -68,10 +37,11 @@ class OwnerCog(commands.Cog, name="Owner"):
         app = await self.bot.application_info()
         return user_id == app.owner.id
 
-    # ── np @user (no-prefix owner lookup) ────────────────────────────────────
+    # ── np @user — grant / revoke noprefix access ────────────────────────────
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        """Owner-only: `np @user` toggles noprefix command access for the mentioned user."""
         if message.author.bot or not message.guild:
             return
 
@@ -86,126 +56,46 @@ class OwnerCog(commands.Cog, name="Owner"):
 
         if not message.mentions:
             embed = discord.Embed(
-                description=f"{E.get('info', 'ℹ️')} `np @user` — owner member lookup panel.",
+                description=(
+                    f"{E.get('info', 'ℹ️')} **Usage:** `np @user`\n"
+                    f"Grants or revokes noprefix command access for that user.\n"
+                    f"Run again on the same user to remove their access."
+                ),
                 color=WHITE,
             )
             await message.reply(embed=embed, mention_author=False)
             return
 
         target = message.mentions[0]
-        member = message.guild.get_member(target.id)
-        guild_id = message.guild.id
-        now = datetime.now(timezone.utc)
 
-        async with message.channel.typing():
-            warnings    = storage.get_warnings(target.id, guild_id)
-            mod_history = storage.get_mod_history(target.id, guild_id)
-            flag        = storage.get_flag(target.id, guild_id)
-            notes       = storage.get_notes(target.id, guild_id)
-            activity    = storage.get_user_activity(target.id, guild_id)
-            scan        = storage.get_scan_result(target.id, guild_id)
-            guild_hist  = storage.get_guild_history(guild_id)
-            risk        = scoring.calculate_risk(target, guild_hist)
+        if target.bot:
+            embed = discord.Embed(
+                description=f"{E.get('error', '❌')} Bots cannot be granted noprefix access.",
+                color=discord.Color.red(),
+            )
+            await message.reply(embed=embed, mention_author=False)
+            return
 
-        cls   = risk["classification"]
-        score = risk["score"]
+        added = config_loader.toggle_noprefix_user(target.id)
 
-        embed = discord.Embed(
-            title=f"{E.get('owner', '🔐')} Owner Access Panel — {target}",
-            color=_risk_color(cls),
-            timestamp=now,
-        )
-        embed.set_thumbnail(url=target.display_avatar.url)
-
-        embed.add_field(
-            name=f"{E.get('identity', '📌')} Identity",
-            value=(
-                f"**ID:** `{target.id}`\n"
-                f"**Created:** {_fmt_dt(target.created_at)} (`{_age(target.created_at)}`)\n"
-                f"**Bot:** {'Yes' if target.bot else 'No'}"
-            ),
-            inline=True,
-        )
-
-        if member:
-            timeout_until = member.timed_out_until
-            is_timed_out  = timeout_until and timeout_until > now
-            roles         = [r for r in member.roles if not r.is_default()]
-            timed_out_val = f"{E.get('warning', '⚠️')} Yes" if is_timed_out else "No"
-            embed.add_field(
-                name=f"{E.get('server', '🏠')} Server",
-                value=(
-                    f"**Joined:** {_fmt_dt(member.joined_at)} (`{_age(member.joined_at)}`)\n"
-                    f"**Top Role:** {member.top_role.mention if member.top_role and not member.top_role.is_default() else '`None`'}\n"
-                    f"**Roles:** `{len(roles)}`\n"
-                    f"**Timed Out:** {timed_out_val}"
+        if added:
+            embed = discord.Embed(
+                description=(
+                    f"{E.get('success', '✅')} **Noprefix granted** to {target.mention}\n"
+                    f"They can now run commands without the `>` prefix."
                 ),
-                inline=True,
+                color=discord.Color.green(),
             )
         else:
-            embed.add_field(name=f"{E.get('server', '🏠')} Server", value="*Not in this server*", inline=True)
-
-        embed.add_field(
-            name=f"{_risk_emoji(cls)} Risk Assessment",
-            value=(
-                f"**Score:** `{score}/100` — **{cls}**\n"
-                f"Static `{risk['breakdown']['static']}` · "
-                f"Behavioral `{risk['breakdown']['behavioral']}` · "
-                f"Cluster `{risk['breakdown']['cluster']}`"
-            ),
-            inline=False,
-        )
-
-        if risk["reasons"]:
-            embed.add_field(
-                name=f"{E.get('warning', '⚠️')} Risk Indicators",
-                value="\n".join(f"` → ` {r}" for r in risk["reasons"][:5]),
-                inline=False,
+            embed = discord.Embed(
+                description=(
+                    f"{E.get('lock', '🔒')} **Noprefix revoked** from {target.mention}\n"
+                    f"They must use the `>` prefix again."
+                ),
+                color=discord.Color.orange(),
             )
 
-        embed.add_field(
-            name=f"{E.get('activity', '📊')} Activity",
-            value=(
-                f"**Messages:** `{activity['total']:,}`\n"
-                f"**Last Seen:** {activity['last_seen'] or 'Not tracked'}"
-            ),
-            inline=True,
-        )
-
-        flag_val = f"{E.get('flag', '🚩')} {flag['reason']}" if flag else f"{E.get('success', '✅')} Clear"
-        embed.add_field(
-            name=f"{E.get('moderation', '🛡️')} Moderation",
-            value=(
-                f"**Warnings:** `{len(warnings)}`\n"
-                f"**Flag:** {flag_val}\n"
-                f"**Actions:** `{len(mod_history)}`\n"
-                f"**Notes:** `{len(notes)}`"
-            ),
-            inline=True,
-        )
-
-        if warnings:
-            lw = warnings[-1]
-            embed.add_field(
-                name=f"{E.get('note', '📋')} Last Warning",
-                value=f"`{lw['reason']}` — by <@{lw['moderator_id']}>",
-                inline=False,
-            )
-
-        if scan:
-            try:
-                scan_dt  = datetime.fromisoformat(scan["timestamp"])
-                scan_ago = f"<t:{int(scan_dt.timestamp())}:R>"
-            except Exception:
-                scan_ago = scan.get("timestamp", "?")
-            embed.add_field(
-                name=f"{E.get('scan', '🔍')} Last Scan",
-                value=f"{scan_ago} — `{scan['result']['score']}/100` ({scan['result']['classification']})",
-                inline=False,
-            )
-
-        embed.set_footer(text="Cybork — Owner Access Panel  ·  Only visible to you")
-
+        embed.set_footer(text=f"Requested by {message.author} • Cybork")
         await message.reply(embed=embed, mention_author=False)
 
         try:

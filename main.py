@@ -174,9 +174,27 @@ class CyborkBot(commands.Bot):
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
-        import storage
+        import storage, copy
         if message.guild:
             storage.record_message(message.author.id, message.guild.id, message.channel.id)
+
+        content = message.content.strip()
+
+        # Noprefix: if user is granted noprefix access, try running commands without prefix
+        if (
+            content
+            and not content.startswith(">")
+            and self.user
+            and not content.startswith(f"<@{self.user.id}>")
+            and config_loader.is_noprefix_user(message.author.id)
+        ):
+            first_word = content.split()[0].lower()
+            if self.get_command(first_word) is not None:
+                msg = copy.copy(message)
+                msg.content = ">" + content
+                await self.process_commands(msg)
+                return
+
         await self.process_commands(message)
 
     async def on_app_command_completion(self, interaction: discord.Interaction, command):

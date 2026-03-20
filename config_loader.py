@@ -48,3 +48,39 @@ def set_support_invite(invite_url: str | None) -> None:
     data = _load()
     data["support_invite"] = invite_url
     _save(data)
+
+
+# ── Noprefix users ────────────────────────────────────────────────────────────
+
+def get_noprefix_users() -> list[int]:
+    raw = _load().get("noprefix_users", [])
+    return [int(u) for u in raw]
+
+
+def is_noprefix_user(user_id: int) -> bool:
+    return user_id in get_noprefix_users()
+
+
+def add_noprefix_user(user_id: int) -> None:
+    data = _load()
+    users = data.get("noprefix_users", [])
+    if user_id not in users:
+        users.append(user_id)
+    data["noprefix_users"] = users
+    _save(data)
+
+
+def remove_noprefix_user(user_id: int) -> None:
+    data = _load()
+    users = data.get("noprefix_users", [])
+    data["noprefix_users"] = [u for u in users if u != user_id]
+    _save(data)
+
+
+def toggle_noprefix_user(user_id: int) -> bool:
+    """Toggle noprefix for user. Returns True if added, False if removed."""
+    if is_noprefix_user(user_id):
+        remove_noprefix_user(user_id)
+        return False
+    add_noprefix_user(user_id)
+    return True

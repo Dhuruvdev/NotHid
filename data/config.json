@@ -1,6 +1,6 @@
 {
-  "support_invite": null
-  "Owns": "1354287041772392478",
-  "GUILD_ID": "1422892168904966226",
-  "DISCORD_TOKEN": "MTM3OTcxNTkwNDI4NzQxMjMxNQ.GmhfqO.855PqF0BX-0zKW2VCLvYDRIIbdmI2q7iu9NZ1Y"
+  "owner_id": null,
+  "guild_id": null,
+  "support_invite": null,
+  "noprefix_users": []
 }
