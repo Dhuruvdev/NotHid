@@ -6,11 +6,11 @@ COMMANDS_DATA = {
         "emoji": "🔍",
         "description": "Risk intelligence commands",
         "commands": [
-            ("/scan @member", "Full risk intelligence report with visual card"),
-            ("/risk @member", "Quick LOW/MEDIUM/HIGH classification"),
-            ("/altsuspect @member", "Alt account detection analysis"),
-            ("/behavior @member", "Behavioral pattern analysis"),
-            ("/trustscore @member", "Reputation and trust score"),
+            (">scan @member", "Full risk intelligence report with visual card"),
+            (">risk @member", "Quick LOW/MEDIUM/HIGH classification"),
+            (">altsuspect @member", "Alt account detection analysis"),
+            (">behavior @member", "Behavioral pattern analysis"),
+            (">trustscore @member", "Reputation and trust score"),
         ],
     },
     "moderation": {
@@ -18,13 +18,13 @@ COMMANDS_DATA = {
         "emoji": "🛡️",
         "description": "Server moderation commands",
         "commands": [
-            ("/warn @member [reason]", "Issue a warning to a member"),
-            ("/mute @member <duration> [reason]", "Timeout a member (e.g. 10m, 2h, 1d)"),
-            ("/kick @member [reason]", "Kick a member from the server"),
-            ("/ban @member [reason]", "Ban a member from the server"),
-            ("/lock [channel] [reason]", "Lock a channel for members"),
-            ("/unlock [channel] [reason]", "Unlock a channel for members"),
-            ("/slowmode <seconds> [channel]", "Set slowmode delay"),
+            (">warn @member [reason]", "Issue a warning to a member"),
+            (">mute @member <duration> [reason]", "Timeout a member (e.g. 10m, 2h, 1d)"),
+            (">kick @member [reason]", "Kick a member from the server"),
+            (">ban @member [reason]", "Ban a member from the server"),
+            (">lock [#channel] [reason]", "Lock a channel for members"),
+            (">unlock [#channel] [reason]", "Unlock a channel for members"),
+            (">slowmode <seconds> [#channel]", "Set slowmode delay"),
         ],
     },
     "history": {
@@ -32,11 +32,11 @@ COMMANDS_DATA = {
         "emoji": "📋",
         "description": "Moderation history and flagging",
         "commands": [
-            ("/warnings @member", "View all warnings for a member"),
-            ("/history @member", "Full moderation action history"),
-            ("/notes @member [note]", "View or add private mod notes"),
-            ("/flag @member [reason]", "Flag a member as suspicious"),
-            ("/unflag @member", "Remove suspicious flag"),
+            (">warnings @member", "View all warnings for a member"),
+            (">history @member", "Full moderation action history"),
+            (">notes @member [note]", "View or add private mod notes"),
+            (">flag @member [reason]", "Flag a member as suspicious"),
+            (">unflag @member", "Remove suspicious flag"),
         ],
     },
     "analytics": {
@@ -44,13 +44,13 @@ COMMANDS_DATA = {
         "emoji": "📊",
         "description": "Server analytics and activity",
         "commands": [
-            ("/serverstats", "Overall server statistics"),
-            ("/topusers", "Most active members"),
-            ("/inactive", "Members with no activity"),
-            ("/channels", "Channel activity overview"),
-            ("/report", "Full server health report"),
-            ("/profile @member", "Member profile card"),
-            ("/activity @member", "Member activity report"),
+            (">serverstats", "Overall server statistics"),
+            (">topusers", "Most active members"),
+            (">inactive", "Members with no activity"),
+            (">channels", "Channel activity overview"),
+            (">report", "Full server health report"),
+            (">profile @member", "Member profile card"),
+            (">activity @member", "Member activity report"),
         ],
     },
     "config": {
@@ -58,15 +58,15 @@ COMMANDS_DATA = {
         "emoji": "⚙️",
         "description": "Bot and server configuration",
         "commands": [
-            ("/setup", "View current server configuration"),
-            ("/setmodlog #channel", "Set moderation log channel"),
-            ("/setalerts #channel", "Set alerts channel"),
-            ("/antispam <on/off>", "Toggle anti-spam filter"),
-            ("/antilink <on/off>", "Toggle anti-link filter"),
-            ("/capsfilter <on/off>", "Toggle caps filter"),
-            ("/alerts risk <on/off>", "Toggle risk join alerts"),
-            ("/autorole set @role", "Set auto-role on join"),
-            ("/autokick set <days>", "Set inactive member auto-kick"),
+            (">setup", "View current server configuration"),
+            (">setmodlog #channel", "Set moderation log channel"),
+            (">setalerts #channel", "Set alerts channel"),
+            (">antispam <on/off>", "Toggle anti-spam filter"),
+            (">antilink <on/off>", "Toggle anti-link filter"),
+            (">capsfilter <on/off>", "Toggle caps filter"),
+            (">alertsrisk <on/off>", "Toggle risk join alerts"),
+            (">autoroleset @role", "Set auto-role on join"),
+            (">autokickset <days>", "Set inactive member auto-kick threshold"),
         ],
     },
     "utility": {
@@ -74,12 +74,13 @@ COMMANDS_DATA = {
         "emoji": "🔧",
         "description": "General utility commands",
         "commands": [
-            ("/ping", "Check bot latency"),
-            ("/about", "About Cybork"),
-            ("/help", "This command menu"),
-            (">ping", "Text prefix ping"),
-            (">help", "Text prefix help"),
-            (">about", "Text prefix about"),
+            (">ping", "Check bot latency"),
+            (">about", "About Cybork"),
+            (">help", "This command menu"),
+            (">botinfo", "Detailed bot information"),
+            (">alertsstatus", "View alert configuration"),
+            (">autorolestatus", "View auto-role configuration"),
+            (">autowarnspam <on/off>", "Toggle auto-warn for spam"),
         ],
     },
 }
@@ -160,7 +161,7 @@ class CategoryView(discord.ui.LayoutView):
                 discord.ui.Separator(),
                 discord.ui.TextDisplay(cmd_text),
                 discord.ui.Separator(),
-                discord.ui.TextDisplay("-# Powered by Cybork  ·  Use `/help` to return to the main menu"),
+                discord.ui.TextDisplay("-# Powered by Cybork  ·  Use `>help` to return to the main menu"),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.ActionRow(prev_btn, back_btn, next_btn),
                 accent_colour=ACCENT_UTIL,
@@ -221,14 +222,14 @@ class HelpMenuView(discord.ui.LayoutView):
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.TextDisplay(
                     "**Getting Started**\n"
-                    "Use `/scan @member` to generate a risk intelligence report.\n"
-                    "Prefix commands are also available with `>`  —  e.g. `>ping`, `>help`\n\n"
+                    "Use `>scan @member` to generate a risk intelligence report.\n"
+                    "All commands use the `>` prefix  —  e.g. `>ping`, `>help`, `>scan @user`\n\n"
                     "Select a category below to browse all commands."
                 ),
                 discord.ui.Separator(),
                 discord.ui.TextDisplay(
                     "**Need Help?**\n"
-                    "Visit our **[Support Server](https://discord.gg/)** or use `/about` for more info."
+                    "Visit our **[Support Server](https://discord.gg/)** or use `>about` for more info."
                 ),
                 discord.ui.Separator(spacing=discord.SeparatorSpacing.small),
                 discord.ui.ActionRow(module_select),

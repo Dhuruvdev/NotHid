@@ -5,6 +5,14 @@ from discord import app_commands
 import storage
 
 
+def _parse_bool(value: str):
+    if value.lower() in ("on", "true", "yes", "enable", "1"):
+        return True
+    if value.lower() in ("off", "false", "no", "disable", "0"):
+        return False
+    return None
+
+
 class AlertsCog(commands.Cog, name="Alerts"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -14,6 +22,8 @@ class AlertsCog(commands.Cog, name="Alerts"):
         description="Configure Cybork alert notifications.",
     )
 
+    # ── Slash Commands ────────────────────────────────────────────────────────
+
     @alerts_group.command(name="risk", description="Toggle risk alerts for high-score joins.")
     @app_commands.describe(enabled="Turn on or off")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -21,7 +31,7 @@ class AlertsCog(commands.Cog, name="Alerts"):
         cfg = storage.get_server_config(interaction.guild_id)
         if enabled and not cfg.get("alerts_channel"):
             await interaction.response.send_message(
-                "❌ Set an alerts channel first with `/setalerts #channel`.", ephemeral=True
+                "❌ Set an alerts channel first with `>setalerts #channel`.", ephemeral=True
             )
             return
         storage.set_server_config(interaction.guild_id, risk_alerts=enabled)
@@ -40,7 +50,7 @@ class AlertsCog(commands.Cog, name="Alerts"):
         cfg = storage.get_server_config(interaction.guild_id)
         if enabled and not cfg.get("alerts_channel"):
             await interaction.response.send_message(
-                "❌ Set an alerts channel first with `/setalerts #channel`.", ephemeral=True
+                "❌ Set an alerts channel first with `>setalerts #channel`.", ephemeral=True
             )
             return
         storage.set_server_config(interaction.guild_id, activity_alerts=enabled)
@@ -59,7 +69,7 @@ class AlertsCog(commands.Cog, name="Alerts"):
         cfg = storage.get_server_config(interaction.guild_id)
         if enabled and not cfg.get("alerts_channel"):
             await interaction.response.send_message(
-                "❌ Set an alerts channel first with `/setalerts #channel`.", ephemeral=True
+                "❌ Set an alerts channel first with `>setalerts #channel`.", ephemeral=True
             )
             return
         storage.set_server_config(interaction.guild_id, spam_alerts=enabled)
@@ -85,8 +95,87 @@ class AlertsCog(commands.Cog, name="Alerts"):
         embed.add_field(name="⚠️ Risk Alerts", value=tog(cfg["risk_alerts"]), inline=True)
         embed.add_field(name="📊 Activity Alerts", value=tog(cfg["activity_alerts"]), inline=True)
         embed.add_field(name="🚨 Spam Alerts", value=tog(cfg["spam_alerts"]), inline=True)
-        embed.set_footer(text="Use /setalerts to set the alert channel.")
+        embed.set_footer(text="Use >setalerts to set the alert channel.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── Prefix Commands ───────────────────────────────────────────────────────
+
+    @commands.command(name="alertsrisk")
+    @commands.has_permissions(manage_guild=True)
+    async def alertsrisk_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        cfg = storage.get_server_config(ctx.guild.id)
+        if enabled and not cfg.get("alerts_channel"):
+            await ctx.reply("❌ Set an alerts channel first with `>setalerts #channel`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, risk_alerts=enabled)
+        state = "enabled ✅" if enabled else "disabled ❌"
+        embed = discord.Embed(
+            title="Risk Alerts",
+            description=f"High-risk join alerts are now **{state}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="alertsactivity")
+    @commands.has_permissions(manage_guild=True)
+    async def alertsactivity_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        cfg = storage.get_server_config(ctx.guild.id)
+        if enabled and not cfg.get("alerts_channel"):
+            await ctx.reply("❌ Set an alerts channel first with `>setalerts #channel`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, activity_alerts=enabled)
+        state = "enabled ✅" if enabled else "disabled ❌"
+        embed = discord.Embed(
+            title="Activity Alerts",
+            description=f"Activity spike alerts are now **{state}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="alertsspam")
+    @commands.has_permissions(manage_guild=True)
+    async def alertsspam_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        cfg = storage.get_server_config(ctx.guild.id)
+        if enabled and not cfg.get("alerts_channel"):
+            await ctx.reply("❌ Set an alerts channel first with `>setalerts #channel`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, spam_alerts=enabled)
+        state = "enabled ✅" if enabled else "disabled ❌"
+        embed = discord.Embed(
+            title="Spam Alerts",
+            description=f"Spam detection alerts are now **{state}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="alertsstatus")
+    async def alertsstatus_prefix(self, ctx: commands.Context):
+        cfg = storage.get_server_config(ctx.guild.id)
+        ch_id = cfg.get("alerts_channel")
+        ch = ctx.guild.get_channel(int(ch_id)) if ch_id else None
+
+        def tog(v):
+            return "✅ On" if v else "❌ Off"
+
+        embed = discord.Embed(title="Alert Configuration", color=discord.Color.blurple())
+        embed.add_field(name="📢 Alerts Channel", value=ch.mention if ch else "`Not set`", inline=False)
+        embed.add_field(name="⚠️ Risk Alerts", value=tog(cfg["risk_alerts"]), inline=True)
+        embed.add_field(name="📊 Activity Alerts", value=tog(cfg["activity_alerts"]), inline=True)
+        embed.add_field(name="🚨 Spam Alerts", value=tog(cfg["spam_alerts"]), inline=True)
+        embed.set_footer(text="Use >setalerts to set the alert channel.")
+        await ctx.reply(embed=embed, mention_author=False)
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):

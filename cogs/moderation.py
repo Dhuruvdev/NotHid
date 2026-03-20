@@ -37,6 +37,24 @@ def _hierarchy_ok(interaction: discord.Interaction, target: discord.Member) -> b
     return True
 
 
+def _hierarchy_ok_ctx(ctx: commands.Context, target: discord.Member) -> bool:
+    if target.id == ctx.guild.owner_id:
+        return False
+    if ctx.guild.me.top_role <= target.top_role:
+        return False
+    if ctx.author.top_role <= target.top_role:
+        return False
+    return True
+
+
+def _parse_bool(value: str) -> Optional[bool]:
+    if value.lower() in ("on", "true", "yes", "enable", "1"):
+        return True
+    if value.lower() in ("off", "false", "no", "disable", "0"):
+        return False
+    return None
+
+
 async def _send_mod_log(bot: commands.Bot, guild: discord.Guild, embed: discord.Embed) -> None:
     cfg = storage.get_server_config(guild.id)
     ch_id = cfg.get("mod_log_channel")
@@ -275,6 +293,180 @@ class ModerationCog(commands.Cog, name="Moderation"):
             color=discord.Color.green() if enabled else discord.Color.red(),
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── Prefix Commands ───────────────────────────────────────────────────────
+
+    @commands.command(name="warn")
+    @commands.has_permissions(moderate_members=True)
+    async def warn_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
+        if not _hierarchy_ok_ctx(ctx, user):
+            await ctx.reply("❌ You cannot warn that member.", mention_author=False)
+            return
+        entry = storage.add_warning(user.id, ctx.guild.id, reason, ctx.author.id)
+        storage.add_mod_action(user.id, ctx.guild.id, "WARN", reason, ctx.author.id)
+        total = len(storage.get_warnings(user.id, ctx.guild.id))
+        embed = discord.Embed(title="⚠️ Warning Issued", color=discord.Color.yellow(), timestamp=datetime.now(timezone.utc))
+        embed.add_field(name="Member", value=user.mention, inline=True)
+        embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Total Warnings", value=f"`{total}`", inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Warning ID: {entry['id']}  ·  Cybork Moderation")
+        embed.set_thumbnail(url=user.display_avatar.url)
+        await ctx.reply(embed=embed, mention_author=False)
+        try:
+            await user.send(embed=discord.Embed(
+                description=f"⚠️ You received a warning in **{ctx.guild.name}**\n**Reason:** {reason}",
+                color=discord.Color.yellow(),
+            ))
+        except Exception:
+            pass
+        await _send_mod_log(self.bot, ctx.guild, embed)
+
+    @commands.command(name="mute")
+    @commands.has_permissions(moderate_members=True)
+    async def mute_prefix(self, ctx: commands.Context, user: discord.Member, duration: str, *, reason: str = "No reason provided"):
+        if not _hierarchy_ok_ctx(ctx, user):
+            await ctx.reply("❌ You cannot mute that member.", mention_author=False)
+            return
+        td = parse_duration(duration)
+        if not td or td.total_seconds() > 2419200:
+            await ctx.reply("❌ Invalid duration. Use formats like `10m`, `2h`, `1d`. Max: 28 days.", mention_author=False)
+            return
+        until = datetime.now(timezone.utc) + td
+        await user.timeout(until, reason=reason)
+        storage.add_mod_action(user.id, ctx.guild.id, "MUTE", reason, ctx.author.id)
+        embed = discord.Embed(title="🔇 Member Muted", color=discord.Color.orange(), timestamp=datetime.now(timezone.utc))
+        embed.add_field(name="Member", value=user.mention, inline=True)
+        embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Duration", value=f"`{_duration_label(td)}`", inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.set_footer(text="Cybork Moderation")
+        await ctx.reply(embed=embed, mention_author=False)
+        await _send_mod_log(self.bot, ctx.guild, embed)
+
+    @commands.command(name="kick")
+    @commands.has_permissions(kick_members=True)
+    async def kick_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
+        if not _hierarchy_ok_ctx(ctx, user):
+            await ctx.reply("❌ You cannot kick that member.", mention_author=False)
+            return
+        storage.add_mod_action(user.id, ctx.guild.id, "KICK", reason, ctx.author.id)
+        embed = discord.Embed(title="👢 Member Kicked", color=discord.Color.red(), timestamp=datetime.now(timezone.utc))
+        embed.add_field(name="Member", value=f"{user} (`{user.id}`)", inline=True)
+        embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.set_footer(text="Cybork Moderation")
+        await ctx.reply(embed=embed, mention_author=False)
+        try:
+            await user.send(embed=discord.Embed(
+                description=f"👢 You were kicked from **{ctx.guild.name}**\n**Reason:** {reason}",
+                color=discord.Color.red(),
+            ))
+        except Exception:
+            pass
+        await user.kick(reason=f"{reason} | by {ctx.author}")
+        await _send_mod_log(self.bot, ctx.guild, embed)
+
+    @commands.command(name="ban")
+    @commands.has_permissions(ban_members=True)
+    async def ban_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
+        if not _hierarchy_ok_ctx(ctx, user):
+            await ctx.reply("❌ You cannot ban that member.", mention_author=False)
+            return
+        storage.add_mod_action(user.id, ctx.guild.id, "BAN", reason, ctx.author.id)
+        embed = discord.Embed(title="🔨 Member Banned", color=discord.Color.dark_red(), timestamp=datetime.now(timezone.utc))
+        embed.add_field(name="Member", value=f"{user} (`{user.id}`)", inline=True)
+        embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.set_footer(text="Cybork Moderation")
+        await ctx.reply(embed=embed, mention_author=False)
+        try:
+            await user.send(embed=discord.Embed(
+                description=f"🔨 You were banned from **{ctx.guild.name}**\n**Reason:** {reason}",
+                color=discord.Color.dark_red(),
+            ))
+        except Exception:
+            pass
+        await user.ban(reason=f"{reason} | by {ctx.author}", delete_message_days=0)
+        await _send_mod_log(self.bot, ctx.guild, embed)
+
+    @commands.command(name="lock")
+    @commands.has_permissions(manage_channels=True)
+    async def lock_prefix(self, ctx: commands.Context, channel: discord.TextChannel = None, *, reason: str = "No reason provided"):
+        ch = channel or ctx.channel
+        overwrite = ch.overwrites_for(ctx.guild.default_role)
+        overwrite.send_messages = False
+        await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=reason)
+        embed = discord.Embed(description=f"🔒 {ch.mention} has been **locked** — {reason}", color=discord.Color.red())
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="unlock")
+    @commands.has_permissions(manage_channels=True)
+    async def unlock_prefix(self, ctx: commands.Context, channel: discord.TextChannel = None, *, reason: str = "No reason provided"):
+        ch = channel or ctx.channel
+        overwrite = ch.overwrites_for(ctx.guild.default_role)
+        overwrite.send_messages = None
+        await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=reason)
+        embed = discord.Embed(description=f"🔓 {ch.mention} has been **unlocked** — {reason}", color=discord.Color.green())
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="slowmode")
+    @commands.has_permissions(manage_channels=True)
+    async def slowmode_prefix(self, ctx: commands.Context, seconds: int, channel: discord.TextChannel = None):
+        ch = channel or ctx.channel
+        seconds = max(0, min(21600, seconds))
+        await ch.edit(slowmode_delay=seconds)
+        desc = f"⏱ Slowmode **disabled** in {ch.mention}." if seconds == 0 else f"⏱ Slowmode set to `{seconds}s` in {ch.mention}."
+        embed = discord.Embed(description=desc, color=discord.Color.blurple())
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="antispam")
+    @commands.has_permissions(manage_guild=True)
+    async def antispam_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, antispam=enabled)
+        icon = "✅" if enabled else "❌"
+        embed = discord.Embed(
+            description=f"{icon} Anti-spam protection is now **{'enabled' if enabled else 'disabled'}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="antilink")
+    @commands.has_permissions(manage_guild=True)
+    async def antilink_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, antilink=enabled)
+        icon = "✅" if enabled else "❌"
+        embed = discord.Embed(
+            description=f"{icon} Anti-link protection is now **{'enabled' if enabled else 'disabled'}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="capsfilter")
+    @commands.has_permissions(manage_guild=True)
+    async def capsfilter_prefix(self, ctx: commands.Context, toggle: str):
+        enabled = _parse_bool(toggle)
+        if enabled is None:
+            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            return
+        storage.set_server_config(ctx.guild.id, capsfilter=enabled)
+        icon = "✅" if enabled else "❌"
+        embed = discord.Embed(
+            description=f"{icon} Caps filter is now **{'enabled' if enabled else 'disabled'}**.",
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
 
     # ── Error Handlers ────────────────────────────────────────────────────────
 
