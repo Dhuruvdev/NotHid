@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from typing import Optional
 
 import storage
 
@@ -23,22 +22,20 @@ class AutomationCog(commands.Cog, name="Automation"):
             return
         storage.set_server_config(interaction.guild_id, autorole=str(role.id))
         embed = discord.Embed(
-            title="✅ Auto Role Set",
-            description=f"New members will automatically receive {role.mention} on join.",
+            description=f"✅ Auto role set — new members will receive {role.mention} on join.",
             color=discord.Color.green(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @autorole_group.command(name="remove", description="Remove the auto-role configuration.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def autorole_remove(self, interaction: discord.Interaction):
         storage.set_server_config(interaction.guild_id, autorole=None)
         embed = discord.Embed(
-            title="✅ Auto Role Removed",
-            description="Auto role assignment has been disabled.",
+            description="✅ Auto role removed — role assignment on join is disabled.",
             color=discord.Color.green(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @autorole_group.command(name="status", description="Check the current auto-role configuration.")
     async def autorole_status(self, interaction: discord.Interaction):
@@ -48,8 +45,8 @@ class AutomationCog(commands.Cog, name="Automation"):
             role = interaction.guild.get_role(int(role_id))
             desc = f"Auto role is set to {role.mention if role else '`Deleted role`'}."
         else:
-            desc = "No auto role is configured. Use `/autorole set` to configure one."
-        embed = discord.Embed(title="Auto Role Status", description=desc, color=discord.Color.blurple())
+            desc = "No auto role configured. Use `/autorole set` to configure one."
+        embed = discord.Embed(description=desc, color=discord.Color.blurple())
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ── Auto Kick ────────────────────────────────────────────────────────────
@@ -62,15 +59,17 @@ class AutomationCog(commands.Cog, name="Automation"):
     async def autokick_set(self, interaction: discord.Interaction, days: int):
         if days <= 0:
             storage.set_server_config(interaction.guild_id, autokick_days=None)
-            embed = discord.Embed(title="✅ Auto-Kick Disabled", description="Inactive member auto-kick has been turned off.", color=discord.Color.green())
+            embed = discord.Embed(
+                description="✅ Auto-kick disabled.",
+                color=discord.Color.green(),
+            )
         else:
             storage.set_server_config(interaction.guild_id, autokick_days=days)
             embed = discord.Embed(
-                title="✅ Auto-Kick Configured",
-                description=f"Members inactive for **{days} days** will be eligible for auto-kick.\n\n*Note: Run `/inactive` to review and kick manually.*",
+                description=f"✅ Auto-kick set — members inactive for **{days} days** are eligible. Run `/inactive` to review.",
                 color=discord.Color.orange(),
             )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ── Auto Warn ────────────────────────────────────────────────────────────
 
@@ -81,13 +80,13 @@ class AutomationCog(commands.Cog, name="Automation"):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def autowarn_spam(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, autowarn_spam=enabled)
-        state = "enabled ✅" if enabled else "disabled ❌"
+        state = "enabled" if enabled else "disabled"
+        icon = "✅" if enabled else "❌"
         embed = discord.Embed(
-            title="Auto-Warn Spam",
-            description=f"Automatic spam warnings are now **{state}**.",
+            description=f"{icon} Auto-warn for spam is now **{state}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):
@@ -97,9 +96,4 @@ class AutomationCog(commands.Cog, name="Automation"):
 
 
 async def setup(bot: commands.Bot):
-    cog = AutomationCog(bot)
-    cog.bot = bot
-    bot.tree.add_command(cog.autorole_group)
-    bot.tree.add_command(cog.autokick_group)
-    bot.tree.add_command(cog.autowarn_group)
-    await bot.add_cog(cog)
+    await bot.add_cog(AutomationCog(bot))

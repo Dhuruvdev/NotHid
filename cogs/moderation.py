@@ -69,24 +69,21 @@ class ModerationCog(commands.Cog, name="Moderation"):
         total = len(storage.get_warnings(user.id, interaction.guild_id))
 
         embed = discord.Embed(
-            title="Warning Issued",
+            title="⚠️ Warning Issued",
             color=discord.Color.yellow(),
             timestamp=datetime.now(timezone.utc),
         )
         embed.add_field(name="Member", value=user.mention, inline=True)
         embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
-        embed.add_field(name="Warning ID", value=f"`{entry['id']}`", inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
         embed.add_field(name="Total Warnings", value=f"`{total}`", inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Warning ID: {entry['id']}  ·  NotHide Moderation")
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="NotHide Moderation")
-
         await interaction.response.send_message(embed=embed)
 
         try:
             dm_embed = discord.Embed(
-                title=f"You received a warning in {interaction.guild.name}",
-                description=f"**Reason:** {reason}",
+                description=f"⚠️ You received a warning in **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.yellow(),
             )
             await user.send(embed=dm_embed)
@@ -117,7 +114,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         storage.add_mod_action(user.id, interaction.guild_id, "MUTE", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="Member Muted",
+            title="🔇 Member Muted",
             color=discord.Color.orange(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -127,7 +124,6 @@ class ModerationCog(commands.Cog, name="Moderation"):
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.set_footer(text="NotHide Moderation")
-
         await interaction.response.send_message(embed=embed)
         await _send_mod_log(self.bot, interaction.guild, embed)
 
@@ -144,7 +140,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         storage.add_mod_action(user.id, interaction.guild_id, "KICK", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="Member Kicked",
+            title="👢 Member Kicked",
             color=discord.Color.red(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -157,8 +153,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await interaction.response.send_message(embed=embed)
         try:
             await user.send(embed=discord.Embed(
-                title=f"You were kicked from {interaction.guild.name}",
-                description=f"**Reason:** {reason}",
+                description=f"👢 You were kicked from **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.red(),
             ))
         except Exception:
@@ -180,7 +175,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         storage.add_mod_action(user.id, interaction.guild_id, "BAN", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="Member Banned",
+            title="🔨 Member Banned",
             color=discord.Color.dark_red(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -194,8 +189,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await interaction.response.send_message(embed=embed)
         try:
             await user.send(embed=discord.Embed(
-                title=f"You were banned from {interaction.guild.name}",
-                description=f"**Reason:** {reason}",
+                description=f"🔨 You were banned from **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.dark_red(),
             ))
         except Exception:
@@ -214,8 +208,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite.send_messages = False
         await ch.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
         embed = discord.Embed(
-            title="🔒 Channel Locked",
-            description=f"{ch.mention} has been locked.\n**Reason:** {reason}",
+            description=f"🔒 {ch.mention} has been **locked** — {reason}",
             color=discord.Color.red(),
         )
         await interaction.response.send_message(embed=embed)
@@ -229,8 +222,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite.send_messages = None
         await ch.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
         embed = discord.Embed(
-            title="🔓 Channel Unlocked",
-            description=f"{ch.mention} has been unlocked.\n**Reason:** {reason}",
+            description=f"🔓 {ch.mention} has been **unlocked** — {reason}",
             color=discord.Color.green(),
         )
         await interaction.response.send_message(embed=embed)
@@ -242,11 +234,8 @@ class ModerationCog(commands.Cog, name="Moderation"):
         ch = channel or interaction.channel
         seconds = max(0, min(21600, seconds))
         await ch.edit(slowmode_delay=seconds)
-        if seconds == 0:
-            desc = f"Slowmode disabled in {ch.mention}."
-        else:
-            desc = f"Slowmode set to `{seconds}s` in {ch.mention}."
-        embed = discord.Embed(title="⏱ Slowmode Updated", description=desc, color=discord.Color.blurple())
+        desc = f"⏱ Slowmode **disabled** in {ch.mention}." if seconds == 0 else f"⏱ Slowmode set to `{seconds}s` in {ch.mention}."
+        embed = discord.Embed(description=desc, color=discord.Color.blurple())
         await interaction.response.send_message(embed=embed)
 
     # ── Server Filters ────────────────────────────────────────────────────────
@@ -256,39 +245,36 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def antispam(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, antispam=enabled)
-        state = "enabled ✅" if enabled else "disabled ❌"
+        icon = "✅" if enabled else "❌"
         embed = discord.Embed(
-            title="Anti-Spam Filter",
-            description=f"Anti-spam protection is now **{state}**.",
+            description=f"{icon} Anti-spam protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="antilink", description="Toggle anti-link filter (blocks external links).")
     @app_commands.describe(enabled="Turn on or off")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def antilink(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, antilink=enabled)
-        state = "enabled ✅" if enabled else "disabled ❌"
+        icon = "✅" if enabled else "❌"
         embed = discord.Embed(
-            title="Anti-Link Filter",
-            description=f"Anti-link protection is now **{state}**.",
+            description=f"{icon} Anti-link protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="capsfilter", description="Toggle caps filter (blocks excessive caps).")
     @app_commands.describe(enabled="Turn on or off")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def capsfilter(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, capsfilter=enabled)
-        state = "enabled ✅" if enabled else "disabled ❌"
+        icon = "✅" if enabled else "❌"
         embed = discord.Embed(
-            title="Caps Filter",
-            description=f"Caps filter is now **{state}**.",
+            description=f"{icon} Caps filter is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ── Error Handlers ────────────────────────────────────────────────────────
 

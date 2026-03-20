@@ -56,11 +56,10 @@ class ConfigCog(commands.Cog, name="Config"):
     async def setmodlog(self, interaction: discord.Interaction, channel: discord.TextChannel):
         storage.set_server_config(interaction.guild_id, mod_log_channel=str(channel.id))
         embed = discord.Embed(
-            title="✅ Mod Log Channel Set",
-            description=f"Moderation logs will now be sent to {channel.mention}.",
+            description=f"✅ Mod log channel set to {channel.mention}.",
             color=discord.Color.green(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="setalerts", description="Set the channel where NotHide alerts are posted.")
     @app_commands.describe(channel="The channel for alerts")
@@ -68,11 +67,10 @@ class ConfigCog(commands.Cog, name="Config"):
     async def setalerts(self, interaction: discord.Interaction, channel: discord.TextChannel):
         storage.set_server_config(interaction.guild_id, alerts_channel=str(channel.id))
         embed = discord.Embed(
-            title="✅ Alerts Channel Set",
-            description=f"NotHide alerts will now be sent to {channel.mention}.",
+            description=f"✅ Alerts channel set to {channel.mention}.",
             color=discord.Color.green(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):

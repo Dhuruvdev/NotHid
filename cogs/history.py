@@ -110,11 +110,9 @@ class HistoryCog(commands.Cog, name="History"):
     async def flag(self, interaction: discord.Interaction, user: discord.Member, reason: str = "Manually flagged"):
         storage.flag_user(user.id, interaction.guild_id, reason, interaction.user.id)
         embed = discord.Embed(
-            title="🚩 Member Flagged",
-            description=f"**{user.mention}** has been flagged as suspicious.\n**Reason:** {reason}",
+            description=f"🚩 {user.mention} has been flagged as suspicious — {reason}",
             color=discord.Color.orange(),
         )
-        embed.set_footer(text="Use /unflag to remove the flag.")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="unflag", description="Remove the suspicious flag from a member.")
@@ -122,18 +120,10 @@ class HistoryCog(commands.Cog, name="History"):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def unflag(self, interaction: discord.Interaction, user: discord.Member):
         removed = storage.unflag_user(user.id, interaction.guild_id)
-        if removed:
-            embed = discord.Embed(
-                title="✅ Flag Removed",
-                description=f"The flag on **{user.mention}** has been removed.",
-                color=discord.Color.green(),
-            )
-        else:
-            embed = discord.Embed(
-                title="Not Flagged",
-                description=f"**{user.mention}** is not currently flagged.",
-                color=discord.Color.greyple(),
-            )
+        embed = discord.Embed(
+            description=f"✅ Flag removed from {user.mention}." if removed else f"ℹ️ {user.mention} is not currently flagged.",
+            color=discord.Color.green() if removed else discord.Color.greyple(),
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):

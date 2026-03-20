@@ -1,21 +1,92 @@
 import os
+import sys
 import logging
 import discord
 from discord.ext import commands
-from discord import app_commands
+from datetime import datetime, timezone
 
-import storage
-import scoring
-from image_generator import generate_card
-from views import AnalysisView
-from help_view import HelpMenuView
+ANSI = {
+    "reset":   "\033[0m",
+    "bold":    "\033[1m",
+    "grey":    "\033[38;5;245m",
+    "white":   "\033[97m",
+    "cyan":    "\033[96m",
+    "green":   "\033[92m",
+    "yellow":  "\033[93m",
+    "red":     "\033[91m",
+    "magenta": "\033[95m",
+    "blue":    "\033[94m",
+    "bg_dark": "\033[48;5;235m",
+}
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+LEVEL_STYLES = {
+    "DEBUG":    (ANSI["grey"],    "DBG"),
+    "INFO":     (ANSI["cyan"],    "INF"),
+    "WARNING":  (ANSI["yellow"],  "WRN"),
+    "ERROR":    (ANSI["red"],     "ERR"),
+    "CRITICAL": (ANSI["magenta"], "CRT"),
+}
+
+LOGGER_COLORS = {
+    "nothide":          ANSI["green"],
+    "nothide.boot":     ANSI["blue"],
+    "nothide.cogs":     ANSI["cyan"],
+    "discord":          ANSI["grey"],
+    "discord.gateway":  ANSI["grey"],
+    "discord.client":   ANSI["grey"],
+    "discord.http":     ANSI["grey"],
+}
+
+
+class NotHideFormatter(logging.Formatter):
+    WIDTH = 80
+
+    def format(self, record: logging.LogRecord) -> str:
+        color, tag = LEVEL_STYLES.get(record.levelname, (ANSI["white"], record.levelname[:3].upper()))
+        ts = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
+
+        name = record.name
+        name_color = ANSI["white"]
+        for key, clr in LOGGER_COLORS.items():
+            if name.startswith(key):
+                name_color = clr
+                break
+
+        name_short = name.split(".")[-1][:16]
+
+        prefix = (
+            f"{ANSI['grey']}{ts}{ANSI['reset']} "
+            f"{color}{ANSI['bold']}[{tag}]{ANSI['reset']} "
+            f"{name_color}{name_short:<16}{ANSI['reset']} "
+            f"{ANSI['grey']}│{ANSI['reset']} "
+        )
+
+        message = record.getMessage()
+        if record.exc_info:
+            message += "\n" + self.formatException(record.exc_info)
+
+        return prefix + message
+
+
+def _setup_logging():
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(NotHideFormatter())
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.handlers.clear()
+    root.addHandler(handler)
+
+    logging.getLogger("discord").setLevel(logging.WARNING)
+    logging.getLogger("discord.http").setLevel(logging.WARNING)
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+
+
+_setup_logging()
+
 log = logging.getLogger("nothide")
+boot_log = logging.getLogger("nothide.boot")
+cog_log = logging.getLogger("nothide.cogs")
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
@@ -23,32 +94,70 @@ if not TOKEN:
 
 GUILD_ID = os.environ.get("GUILD_ID")
 
+EXTENSIONS = [
+    "cogs.utility",
+    "cogs.user",
+    "cogs.risk",
+    "cogs.moderation",
+    "cogs.history",
+    "cogs.config",
+    "cogs.automation",
+    "cogs.analytics",
+    "cogs.alerts",
+    "cogs.owner",
+]
+
 intents = discord.Intents.default()
 intents.members = True
-intents.message_content = False
+intents.message_content = True
 
 
 class NotHideBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned, intents=intents, help_command=None)
+        super().__init__(
+            command_prefix=commands.when_mentioned,
+            intents=intents,
+            help_command=None,
+        )
+        self.start_time = datetime.now(timezone.utc)
 
     async def setup_hook(self):
-        self.tree.add_command(scan_command)
-        self.tree.add_command(ping_command)
-        self.tree.add_command(about_command)
-        self.tree.add_command(help_command)
+        sep = f"{ANSI['grey']}{'─' * 60}{ANSI['reset']}"
+        print(sep)
+        boot_log.info(f"Loading {len(EXTENSIONS)} cog extensions...")
+
+        failed = []
+        for ext in EXTENSIONS:
+            try:
+                await self.load_extension(ext)
+                cog_log.info(f"Loaded  ✓  {ext}")
+            except Exception as e:
+                cog_log.error(f"Failed  ✗  {ext}  →  {e}")
+                failed.append(ext)
+
+        all_cmds = list(self.tree.walk_commands())
+        boot_log.info(f"Commands registered: {len(all_cmds)}")
 
         if GUILD_ID:
             guild_obj = discord.Object(id=int(GUILD_ID))
             self.tree.copy_global_to(guild=guild_obj)
             await self.tree.sync(guild=guild_obj)
-            log.info(f"Commands synced to guild {GUILD_ID} (instant)")
+            boot_log.info(f"Synced to guild {GUILD_ID} (instant)")
         else:
             await self.tree.sync()
-            log.info("Commands synced globally (may take up to 1 hour to propagate)")
+            boot_log.info("Synced globally (up to 1h propagation)")
+
+        if failed:
+            boot_log.warning(f"{len(failed)} extension(s) failed to load: {', '.join(failed)}")
+
+        print(sep)
 
     async def on_ready(self):
-        log.info(f"NotHide online — logged in as {self.user} ({self.user.id})")
+        sep = f"{ANSI['green']}{'━' * 60}{ANSI['reset']}"
+        print(sep)
+        log.info(f"NotHide is online   →   {self.user}  ({self.user.id})")
+        log.info(f"Guilds: {len(self.guilds)}   •   Latency: {round(self.latency * 1000)}ms")
+        print(sep)
         await self.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
@@ -57,104 +166,31 @@ class NotHideBot(commands.Bot):
         )
 
     async def on_member_join(self, member: discord.Member):
+        import storage
         storage.record_join(member.id, member.name, member.guild.id, member.created_at)
-        log.info(f"Recorded join: {member.name} ({member.id}) in guild {member.guild.id}")
+        log.info(f"Join recorded  →  {member.name} ({member.id})  in  {member.guild.name}")
+
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+        import storage
+        if message.guild:
+            storage.record_message(message.author.id, message.guild.id, message.channel.id)
+        await self.process_commands(message)
+
+    async def on_app_command_completion(self, interaction: discord.Interaction, command):
+        guild_name = interaction.guild.name if interaction.guild else "DM"
+        log.info(f"/{command.name}  ←  {interaction.user}  in  [{guild_name}]")
+
+    async def on_command_error(self, ctx, error):
+        log.error(f"Command error: {error}")
+
+    async def on_error(self, event_method: str, *args, **kwargs):
+        log.error(f"Unhandled error in event: {event_method}", exc_info=True)
 
 
 bot = NotHideBot()
 
-
-@app_commands.command(name="scan", description="Analyze a server member and generate a risk intelligence report.")
-@app_commands.describe(user="The member to analyze")
-async def scan_command(interaction: discord.Interaction, user: discord.Member):
-    await interaction.response.defer(thinking=True)
-
-    guild_history = storage.get_guild_history(interaction.guild_id)
-    result = scoring.calculate_risk(user, guild_history)
-    storage.save_scan_result(user.id, interaction.guild_id, result)
-
-    avatar_bytes = None
-    try:
-        avatar_bytes = await user.display_avatar.replace(format="png", size=256).read()
-    except Exception as e:
-        log.warning(f"Could not fetch avatar for {user.name}: {e}")
-
-    card_buffer = generate_card(
-        username=user.name,
-        display_name=user.display_name,
-        user_id=str(user.id),
-        score=result["score"],
-        classification=result["classification"],
-        reasons=result["reasons"],
-        account_age_days=result["details"]["account_age_days"],
-        avatar_bytes=avatar_bytes,
-    )
-
-    file = discord.File(card_buffer, filename="analysis_card.png")
-
-    cls = result["classification"]
-    cls_colors = {
-        "LOW": discord.Color.green(),
-        "MEDIUM": discord.Color.yellow(),
-        "HIGH": discord.Color.red(),
-    }
-    color = cls_colors.get(cls, discord.Color.greyple())
-
-    top_reason = result["reasons"][0] if result["reasons"] else "No significant indicators detected."
-
-    embed = discord.Embed(
-        title="Analysis Complete",
-        description=(
-            f"Risk scan completed for **{user.mention}**.\n"
-            f"*{top_reason}*"
-        ),
-        color=color,
-    )
-    embed.set_image(url="attachment://analysis_card.png")
-    embed.set_footer(text="NotHide — Detect What Others Miss  ·  Results are probabilistic, not definitive.")
-
-    view = AnalysisView(scan_result=result, member=user)
-    await interaction.followup.send(embed=embed, file=file, view=view)
-
-
-@app_commands.command(name="ping", description="Check the bot's response latency.")
-async def ping_command(interaction: discord.Interaction):
-    latency_ms = round(bot.latency * 1000)
-    embed = discord.Embed(
-        title="Latency Check",
-        description=f"WebSocket latency: `{latency_ms}ms`",
-        color=discord.Color.blurple(),
-    )
-    embed.set_footer(text="NotHide")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@app_commands.command(name="about", description="Learn about NotHide and what it does.")
-async def about_command(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="About NotHide",
-        description=(
-            "**NotHide** is a risk intelligence tool for Discord servers.\n\n"
-            "It analyzes members using multiple signal layers:\n"
-            "` → ` **Static signals** — Account age, username structure\n"
-            "` → ` **Behavioral similarity** — Pattern matching with recent joins\n"
-            "` → ` **Cluster detection** — Join timing anomaly detection\n\n"
-            "Results are *probabilistic* and should be used as indicators, not verdicts.\n\n"
-            "**Commands:**\n"
-            "`/scan` — Analyze a member's risk profile\n"
-            "`/ping` — Check bot latency\n"
-            "`/about` — This message"
-        ),
-        color=discord.Color.og_blurple(),
-    )
-    embed.set_footer(text="NotHide — Detect What Others Miss")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@app_commands.command(name="help", description="Browse all NotHide commands in an interactive menu.")
-async def help_command(interaction: discord.Interaction):
-    await interaction.response.send_message(view=HelpMenuView())
-
-
 if __name__ == "__main__":
+    print(f"\n{ANSI['bold']}{ANSI['green']}  NotHide Bot  —  Starting up...{ANSI['reset']}\n")
     bot.run(TOKEN, log_handler=None)
