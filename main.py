@@ -5,6 +5,8 @@ import discord
 from discord.ext import commands
 from datetime import datetime, timezone
 
+import config_loader
+
 ANSI = {
     "reset":   "\033[0m",
     "bold":    "\033[1m",
@@ -92,9 +94,6 @@ TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN environment variable is not set.")
 
-_guild_id_raw = os.environ.get("GUILD_ID", "").strip()
-GUILD_ID = _guild_id_raw if _guild_id_raw.isdigit() else None
-
 EXTENSIONS = [
     "cogs.utility",
     "cogs.user",
@@ -139,11 +138,12 @@ class CyborkBot(commands.Bot):
         all_cmds = list(self.tree.walk_commands())
         boot_log.info(f"Commands registered: {len(all_cmds)}")
 
-        if GUILD_ID:
-            guild_obj = discord.Object(id=int(GUILD_ID))
+        guild_id = config_loader.get_guild_id()
+        if guild_id:
+            guild_obj = discord.Object(id=int(guild_id))
             self.tree.copy_global_to(guild=guild_obj)
             await self.tree.sync(guild=guild_obj)
-            boot_log.info(f"Synced to guild {GUILD_ID} (instant)")
+            boot_log.info(f"Synced to guild {guild_id} (instant)")
         else:
             await self.tree.sync()
             boot_log.info("Synced globally (up to 1h propagation)")

@@ -97,10 +97,10 @@ class AlertsCog(commands.Cog, name="Alerts"):
             return f"{E.get('success', '✅')} On" if v else f"{E.get('error', '❌')} Off"
 
         embed = discord.Embed(title=f"{E.get('bell', '🔔')} Alert Configuration", color=WHITE)
-        embed.add_field(name="📢 Alerts Channel",   value=ch.mention if ch else "`Not set`", inline=False)
-        embed.add_field(name="⚠️ Risk Alerts",      value=tog(cfg["risk_alerts"]),           inline=True)
-        embed.add_field(name="📊 Activity Alerts",  value=tog(cfg["activity_alerts"]),       inline=True)
-        embed.add_field(name="🚨 Spam Alerts",      value=tog(cfg["spam_alerts"]),           inline=True)
+        embed.add_field(name=f"{E.get('announcement', '📢')} Alerts Channel", value=ch.mention if ch else "`Not set`",  inline=False)
+        embed.add_field(name=f"{E.get('warning', '⚠️')} Risk Alerts",         value=tog(cfg["risk_alerts"]),            inline=True)
+        embed.add_field(name=f"{E.get('activity', '📊')} Activity Alerts",    value=tog(cfg["activity_alerts"]),        inline=True)
+        embed.add_field(name=f"{E.get('alert', '🚨')} Spam Alerts",           value=tog(cfg["spam_alerts"]),            inline=True)
         embed.set_footer(text="Use >setalerts to set the alert channel.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -179,10 +179,10 @@ class AlertsCog(commands.Cog, name="Alerts"):
             return f"{E.get('success', '✅')} On" if v else f"{E.get('error', '❌')} Off"
 
         embed = discord.Embed(title=f"{E.get('bell', '🔔')} Alert Configuration", color=WHITE)
-        embed.add_field(name="📢 Alerts Channel",  value=ch.mention if ch else "`Not set`", inline=False)
-        embed.add_field(name="⚠️ Risk Alerts",     value=tog(cfg["risk_alerts"]),           inline=True)
-        embed.add_field(name="📊 Activity Alerts", value=tog(cfg["activity_alerts"]),       inline=True)
-        embed.add_field(name="🚨 Spam Alerts",     value=tog(cfg["spam_alerts"]),           inline=True)
+        embed.add_field(name=f"{E.get('announcement', '📢')} Alerts Channel", value=ch.mention if ch else "`Not set`", inline=False)
+        embed.add_field(name=f"{E.get('warning', '⚠️')} Risk Alerts",         value=tog(cfg["risk_alerts"]),           inline=True)
+        embed.add_field(name=f"{E.get('activity', '📊')} Activity Alerts",    value=tog(cfg["activity_alerts"]),       inline=True)
+        embed.add_field(name=f"{E.get('alert', '🚨')} Spam Alerts",           value=tog(cfg["spam_alerts"]),           inline=True)
         embed.set_footer(text="Use >setalerts to set the alert channel.")
         await ctx.reply(embed=embed, mention_author=False)
 

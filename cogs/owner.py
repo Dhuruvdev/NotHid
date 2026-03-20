@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import storage
 import scoring
 import emojis_loader as E
+import config_loader
 from checks import is_owner, get_owner_id
 
 WHITE = discord.Color.from_rgb(255, 255, 255)
@@ -61,7 +62,7 @@ class OwnerCog(commands.Cog, name="Owner"):
         self.bot = bot
 
     async def _is_owner(self, user_id: int) -> bool:
-        owner_id = get_owner_id()
+        owner_id = config_loader.get_owner_id()
         if owner_id:
             return user_id == owner_id
         app = await self.bot.application_info()
@@ -130,13 +131,14 @@ class OwnerCog(commands.Cog, name="Owner"):
             timeout_until = member.timed_out_until
             is_timed_out  = timeout_until and timeout_until > now
             roles         = [r for r in member.roles if not r.is_default()]
+            timed_out_val = f"{E.get('warning', '⚠️')} Yes" if is_timed_out else "No"
             embed.add_field(
                 name=f"{E.get('server', '🏠')} Server",
                 value=(
                     f"**Joined:** {_fmt_dt(member.joined_at)} (`{_age(member.joined_at)}`)\n"
                     f"**Top Role:** {member.top_role.mention if member.top_role and not member.top_role.is_default() else '`None`'}\n"
                     f"**Roles:** `{len(roles)}`\n"
-                    f"**Timed Out:** {f'{E.get(\"warning\", \"⚠️\")} Yes' if is_timed_out else 'No'}"
+                    f"**Timed Out:** {timed_out_val}"
                 ),
                 inline=True,
             )
@@ -170,11 +172,12 @@ class OwnerCog(commands.Cog, name="Owner"):
             inline=True,
         )
 
+        flag_val = f"{E.get('flag', '🚩')} {flag['reason']}" if flag else f"{E.get('success', '✅')} Clear"
         embed.add_field(
             name=f"{E.get('moderation', '🛡️')} Moderation",
             value=(
                 f"**Warnings:** `{len(warnings)}`\n"
-                f"**Flag:** {f'{E.get(\"flag\", \"🚩\")} ' + flag['reason'] if flag else f'{E.get(\"success\", \"✅\")} Clear'}\n"
+                f"**Flag:** {flag_val}\n"
                 f"**Actions:** `{len(mod_history)}`\n"
                 f"**Notes:** `{len(notes)}`"
             ),
@@ -291,7 +294,7 @@ class OwnerCog(commands.Cog, name="Owner"):
         cogs_n   = len(bot.cogs)
         cmds     = len(list(bot.tree.walk_commands()))
         latency  = round(bot.latency * 1000)
-        owner_id = get_owner_id()
+        owner_id = config_loader.get_owner_id()
 
         embed = discord.Embed(
             title=f"{E.get('owner', '🔐')} Cybork — Bot Info",
@@ -340,6 +343,72 @@ class OwnerCog(commands.Cog, name="Owner"):
             f"{E.get('warning', '⚠️')} Shutting down Cybork...", ephemeral=True
         )
         await self.bot.close()
+
+    # ── Set Owner (prefix, bootstrap) ────────────────────────────────────────
+
+    @commands.command(name="setowner")
+    async def setowner(self, ctx: commands.Context, user_id: str = ""):
+        """
+        Bootstrap command: >setowner <discord_user_id>
+        Can only be run when no owner is currently set in config.json,
+        or by the already-configured owner.
+        """
+        current_owner = config_loader.get_owner_id()
+        if current_owner and ctx.author.id != current_owner:
+            embed = discord.Embed(
+                description=f"{E.get('lock', '🔒')} Owner is already configured.",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        target_id = user_id.strip() or str(ctx.author.id)
+        if not target_id.isdigit():
+            embed = discord.Embed(
+                description=f"{E.get('error', '❌')} Invalid user ID. Usage: `>setowner <discord_user_id>`",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        config_loader.set_owner_id(int(target_id))
+        embed = discord.Embed(
+            description=f"{E.get('success', '✅')} Owner set to <@{target_id}> (`{target_id}`) — saved to `data/config.json`.",
+            color=discord.Color.green(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    # ── Set Guild ─────────────────────────────────────────────────────────────
+
+    @commands.command(name="setguild")
+    async def setguild(self, ctx: commands.Context, guild_id: str = ""):
+        """
+        >setguild [guild_id]  — Set the guild ID for instant slash command sync.
+        Only usable by the configured owner. Leave blank to use current guild.
+        """
+        if not await self._is_owner(ctx.author.id):
+            embed = discord.Embed(
+                description=f"{E.get('lock', '🔒')} This command is restricted to the bot owner.",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        gid = guild_id.strip() or str(ctx.guild.id)
+        if not gid.isdigit():
+            embed = discord.Embed(
+                description=f"{E.get('error', '❌')} Invalid guild ID.",
+                color=discord.Color.red(),
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
+        config_loader.set_guild_id(int(gid))
+        embed = discord.Embed(
+            description=f"{E.get('success', '✅')} Guild ID set to `{gid}` — saved to `data/config.json`.",
+            color=discord.Color.green(),
+        )
+        await ctx.reply(embed=embed, mention_author=False)
 
     # ── Error Handler ─────────────────────────────────────────────────────────
 

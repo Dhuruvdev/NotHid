@@ -116,17 +116,17 @@ def _build_serverstats(guild: discord.Guild) -> discord.Embed:
     )
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-    embed.add_field(name="👥 Total Members", value=f"`{total:,}`",                           inline=True)
-    embed.add_field(name="🧑 Humans",        value=f"`{humans:,}`",                          inline=True)
-    embed.add_field(name="🤖 Bots",          value=f"`{bots:,}`",                            inline=True)
-    embed.add_field(name="🟢 Online",        value=f"`{online:,}`",                          inline=True)
-    embed.add_field(name="📥 Joined (7d)",   value=f"`{new_7d}`",                            inline=True)
-    embed.add_field(name="📥 Joined (30d)",  value=f"`{new_30d}`",                           inline=True)
-    embed.add_field(name="📁 Channels",      value=f"`{text_ch}` text · `{voice_ch}` voice", inline=True)
-    embed.add_field(name="🏷️ Roles",         value=f"`{roles}`",                             inline=True)
-    embed.add_field(name="⚡ Boost Tier",    value=f"`Tier {boost_tier}` ({boosters} boosts)", inline=True)
+    embed.add_field(name=f"{E.get('members', '👥')} Total Members", value=f"`{total:,}`",                             inline=True)
+    embed.add_field(name=f"{E.get('humans', '🧑')} Humans",         value=f"`{humans:,}`",                            inline=True)
+    embed.add_field(name=f"{E.get('bot', '🤖')} Bots",              value=f"`{bots:,}`",                              inline=True)
+    embed.add_field(name=f"{E.get('online', '🟢')} Online",         value=f"`{online:,}`",                            inline=True)
+    embed.add_field(name=f"{E.get('join', '📥')} Joined (7d)",      value=f"`{new_7d}`",                              inline=True)
+    embed.add_field(name=f"{E.get('join', '📥')} Joined (30d)",     value=f"`{new_30d}`",                             inline=True)
+    embed.add_field(name=f"{E.get('folder', '📁')} Channels",       value=f"`{text_ch}` text · `{voice_ch}` voice",  inline=True)
+    embed.add_field(name=f"{E.get('roles_icon', '🏷️')} Roles",      value=f"`{roles}`",                              inline=True)
+    embed.add_field(name=f"{E.get('boost', '⚡')} Boost Tier",      value=f"`Tier {boost_tier}` ({boosters} boosts)", inline=True)
     embed.add_field(
-        name="🗓 Server Age",
+        name=f"{E.get('calendar', '🗓️')} Server Age",
         value=f"`{age_days // 365}y {(age_days % 365) // 30}mo`\n*Created {guild.created_at.strftime('%b %d, %Y')}*",
         inline=False,
     )
@@ -144,7 +144,11 @@ def _build_topusers(guild: discord.Guild, guild_id: int) -> discord.Embed:
         embed.description = "No message activity tracked yet.\n*Cybork records messages from the point it joined.*"
     else:
         lines = []
-        medals = ["🥇", "🥈", "🥉"]
+        medals = [
+            E.get("medal_gold",   "🥇"),
+            E.get("medal_silver", "🥈"),
+            E.get("medal_bronze", "🥉"),
+        ]
         for i, (uid, data) in enumerate(top):
             member = guild.get_member(int(uid))
             name = member.display_name if member else f"User {uid}"
@@ -219,9 +223,9 @@ def _build_channels(guild: discord.Guild) -> discord.Embed:
             ch = guild.get_channel(int(cid))
             name = ch.mention if ch else f"<#{cid}>"
             lines.append(f"` → ` {name} — `{count:,}` messages")
-        embed.add_field(name="🔥 Most Active", value="\n".join(lines), inline=False)
+        embed.add_field(name=f"{E.get('fire', '🔥')} Most Active", value="\n".join(lines), inline=False)
     else:
-        embed.add_field(name="🔥 Most Active", value="No data tracked yet.", inline=False)
+        embed.add_field(name=f"{E.get('fire', '🔥')} Most Active", value="No data tracked yet.", inline=False)
 
     if dead_ids:
         dead_mentions = [guild.get_channel(cid).mention for cid in list(dead_ids)[:8] if guild.get_channel(cid)]
@@ -252,9 +256,9 @@ def _build_report(guild: discord.Guild) -> discord.Embed:
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
 
-    embed.add_field(name="👥 Members",   value=f"`{humans:,}` humans · `{total - humans}` bots", inline=True)
-    embed.add_field(name="📥 New (7d)",  value=f"`{new_7d}`",                                     inline=True)
-    embed.add_field(name=f"{E.get('flag', '🚩')} Flagged", value=f"`{len(all_flags)}`",           inline=True)
+    embed.add_field(name=f"{E.get('members', '👥')} Members",  value=f"`{humans:,}` humans · `{total - humans}` bots", inline=True)
+    embed.add_field(name=f"{E.get('join', '📥')} New (7d)",    value=f"`{new_7d}`",                                     inline=True)
+    embed.add_field(name=f"{E.get('flag', '🚩')} Flagged",     value=f"`{len(all_flags)}`",                             inline=True)
 
     ok = E.get("success", "✅")
     no = E.get("error", "❌")

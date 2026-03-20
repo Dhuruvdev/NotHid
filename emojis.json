@@ -43,5 +43,20 @@
   "profile":       "🪪",
   "report":        "🏥",
   "announcement":  "📢",
-  "check":         "✔️"
+  "check":         "✔️",
+  "members":       "👥",
+  "humans":        "🧑",
+  "join":          "📥",
+  "folder":        "📁",
+  "roles_icon":    "🏷️",
+  "boost":         "⚡",
+  "calendar":      "🗓️",
+  "fire":          "🔥",
+  "medal_gold":    "🥇",
+  "medal_silver":  "🥈",
+  "medal_bronze":  "🥉",
+  "autorole":      "🎭",
+  "caps_filter":   "🔡",
+  "timer":         "⏰",
+  "online":        "🟢"
 }
