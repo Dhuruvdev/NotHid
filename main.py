@@ -116,7 +116,7 @@ intents.message_content = True
 class CyborkBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix=commands.when_mentioned,
+            command_prefix=commands.when_mentioned_or(">"),
             intents=intents,
             help_command=None,
         )
