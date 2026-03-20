@@ -4,6 +4,9 @@ from discord import app_commands
 from datetime import datetime, timezone
 
 import storage
+import emojis_loader as E
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 
 class AnalyticsCog(commands.Cog, name="Analytics"):
@@ -78,9 +81,9 @@ class AnalyticsCog(commands.Cog, name="Analytics"):
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ You need `Manage Server` permission.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You need `Manage Server` permission.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"❌ Error: `{error}`", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} Error: `{error}`", ephemeral=True)
 
 
 def _build_serverstats(guild: discord.Guild) -> discord.Embed:
@@ -106,18 +109,22 @@ def _build_serverstats(guild: discord.Guild) -> discord.Embed:
             if diff <= 30:
                 new_30d += 1
 
-    embed = discord.Embed(title=f"Server Statistics — {guild.name}", color=discord.Color.blurple(), timestamp=now)
+    embed = discord.Embed(
+        title=f"{E.get('stats', '📊')} Server Statistics — {guild.name}",
+        color=WHITE,
+        timestamp=now,
+    )
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-    embed.add_field(name="👥 Total Members", value=f"`{total:,}`", inline=True)
-    embed.add_field(name="🧑 Humans", value=f"`{humans:,}`", inline=True)
-    embed.add_field(name="🤖 Bots", value=f"`{bots:,}`", inline=True)
-    embed.add_field(name="🟢 Online", value=f"`{online:,}`", inline=True)
-    embed.add_field(name="📥 Joined (7d)", value=f"`{new_7d}`", inline=True)
-    embed.add_field(name="📥 Joined (30d)", value=f"`{new_30d}`", inline=True)
-    embed.add_field(name="📁 Channels", value=f"`{text_ch}` text · `{voice_ch}` voice", inline=True)
-    embed.add_field(name="🏷️ Roles", value=f"`{roles}`", inline=True)
-    embed.add_field(name="⚡ Boost Tier", value=f"`Tier {boost_tier}` ({boosters} boosts)", inline=True)
+    embed.add_field(name="👥 Total Members", value=f"`{total:,}`",                           inline=True)
+    embed.add_field(name="🧑 Humans",        value=f"`{humans:,}`",                          inline=True)
+    embed.add_field(name="🤖 Bots",          value=f"`{bots:,}`",                            inline=True)
+    embed.add_field(name="🟢 Online",        value=f"`{online:,}`",                          inline=True)
+    embed.add_field(name="📥 Joined (7d)",   value=f"`{new_7d}`",                            inline=True)
+    embed.add_field(name="📥 Joined (30d)",  value=f"`{new_30d}`",                           inline=True)
+    embed.add_field(name="📁 Channels",      value=f"`{text_ch}` text · `{voice_ch}` voice", inline=True)
+    embed.add_field(name="🏷️ Roles",         value=f"`{roles}`",                             inline=True)
+    embed.add_field(name="⚡ Boost Tier",    value=f"`Tier {boost_tier}` ({boosters} boosts)", inline=True)
     embed.add_field(
         name="🗓 Server Age",
         value=f"`{age_days // 365}y {(age_days % 365) // 30}mo`\n*Created {guild.created_at.strftime('%b %d, %Y')}*",
@@ -129,7 +136,10 @@ def _build_serverstats(guild: discord.Guild) -> discord.Embed:
 
 def _build_topusers(guild: discord.Guild, guild_id: int) -> discord.Embed:
     top = storage.get_top_users(guild_id, limit=10)
-    embed = discord.Embed(title=f"Top Active Members — {guild.name}", color=discord.Color.blurple())
+    embed = discord.Embed(
+        title=f"{E.get('trophy', '🏆')} Top Active Members — {guild.name}",
+        color=WHITE,
+    )
     if not top:
         embed.description = "No message activity tracked yet.\n*Cybork records messages from the point it joined.*"
     else:
@@ -162,7 +172,7 @@ def _build_inactive(guild: discord.Guild, guild_id: int) -> discord.Embed:
     inactive_members.sort(key=lambda x: x[1], reverse=True)
 
     embed = discord.Embed(
-        title=f"Inactive Members — {guild.name}",
+        title=f"{E.get('inactive', '💤')} Inactive Members — {guild.name}",
         description="Members with **zero tracked messages** since Cybork joined.",
         color=discord.Color.orange(),
     )
@@ -170,7 +180,7 @@ def _build_inactive(guild: discord.Guild, guild_id: int) -> discord.Embed:
         embed.description += f"\n*Auto-kick threshold: `{threshold_days}d` (set via >autokickset)*"
 
     if not inactive_members:
-        embed.description += "\n\n✅ All members have some tracked activity."
+        embed.description += f"\n\n{E.get('success', '✅')} All members have some tracked activity."
     else:
         lines = []
         for member, joined_days in inactive_members[:15]:
@@ -198,7 +208,10 @@ def _build_channels(guild: discord.Guild) -> discord.Embed:
     active = sorted_ch[:5]
     dead_ids = {c.id for c in guild.text_channels} - {int(cid) for cid, _ in all_activity.items()}
 
-    embed = discord.Embed(title=f"Channel Activity — {guild.name}", color=discord.Color.blurple())
+    embed = discord.Embed(
+        title=f"{E.get('channels', '💬')} Channel Activity — {guild.name}",
+        color=WHITE,
+    )
 
     if active:
         lines = []
@@ -213,7 +226,7 @@ def _build_channels(guild: discord.Guild) -> discord.Embed:
     if dead_ids:
         dead_mentions = [guild.get_channel(cid).mention for cid in list(dead_ids)[:8] if guild.get_channel(cid)]
         embed.add_field(
-            name=f"💤 No Activity ({len(dead_ids)} channels)",
+            name=f"{E.get('inactive', '💤')} No Activity ({len(dead_ids)} channels)",
             value=" ".join(dead_mentions) or "None",
             inline=False,
         )
@@ -232,24 +245,26 @@ def _build_report(guild: discord.Guild) -> discord.Embed:
     cfg = storage.get_server_config(guild.id)
 
     embed = discord.Embed(
-        title=f"🏥 Server Health Report — {guild.name}",
-        color=discord.Color.from_rgb(124, 58, 237),
+        title=f"{E.get('report', '🏥')} Server Health Report — {guild.name}",
+        color=WHITE,
         timestamp=now,
     )
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
 
-    embed.add_field(name="👥 Members", value=f"`{humans:,}` humans · `{total - humans}` bots", inline=True)
-    embed.add_field(name="📥 New (7d)", value=f"`{new_7d}`", inline=True)
-    embed.add_field(name="🚩 Flagged", value=f"`{len(all_flags)}`", inline=True)
+    embed.add_field(name="👥 Members",   value=f"`{humans:,}` humans · `{total - humans}` bots", inline=True)
+    embed.add_field(name="📥 New (7d)",  value=f"`{new_7d}`",                                     inline=True)
+    embed.add_field(name=f"{E.get('flag', '🚩')} Flagged", value=f"`{len(all_flags)}`",           inline=True)
 
+    ok = E.get("success", "✅")
+    no = E.get("error", "❌")
     protection_lines = [
-        f"{'✅' if cfg['antispam'] else '❌'} Anti-Spam",
-        f"{'✅' if cfg['antilink'] else '❌'} Anti-Link",
-        f"{'✅' if cfg['capsfilter'] else '❌'} Caps Filter",
-        f"{'✅' if cfg['risk_alerts'] else '❌'} Risk Alerts",
+        f"{ok if cfg['antispam'] else no} Anti-Spam",
+        f"{ok if cfg['antilink'] else no} Anti-Link",
+        f"{ok if cfg['capsfilter'] else no} Caps Filter",
+        f"{ok if cfg['risk_alerts'] else no} Risk Alerts",
     ]
-    embed.add_field(name="🛡️ Protection Status", value="\n".join(protection_lines), inline=True)
+    embed.add_field(name=f"{E.get('shield', '🛡️')} Protection Status", value="\n".join(protection_lines), inline=True)
 
     if top:
         top_lines = []
@@ -257,7 +272,7 @@ def _build_report(guild: discord.Guild) -> discord.Embed:
             m = guild.get_member(int(uid))
             name = m.display_name if m else f"User {uid}"
             top_lines.append(f"` → ` **{name}** `{data['total']:,}` msgs")
-        embed.add_field(name="📊 Top Members", value="\n".join(top_lines), inline=True)
+        embed.add_field(name=f"{E.get('stats', '📊')} Top Members", value="\n".join(top_lines), inline=True)
 
     embed.set_footer(text="Cybork Server Health Report")
     return embed

@@ -2,6 +2,21 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from help_view import HelpMenuView
+import emojis_loader as E
+from checks import get_owner_id
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
+
+
+async def _resolve_is_owner(bot: commands.Bot, user_id: int) -> bool:
+    owner_id = get_owner_id()
+    if not owner_id:
+        try:
+            app = await bot.application_info()
+            owner_id = app.owner.id
+        except Exception:
+            return False
+    return user_id == owner_id
 
 
 class UtilityCog(commands.Cog, name="Utility"):
@@ -14,8 +29,8 @@ class UtilityCog(commands.Cog, name="Utility"):
     async def ping_slash(self, interaction: discord.Interaction):
         latency_ms = round(self.bot.latency * 1000)
         embed = discord.Embed(
-            description=f"🏓 WebSocket latency: `{latency_ms}ms`",
-            color=discord.Color.blurple(),
+            description=f"{E.get('ping', '🏓')} WebSocket latency: `{latency_ms}ms`",
+            color=WHITE,
         )
         embed.set_footer(text="Cybork")
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -27,7 +42,8 @@ class UtilityCog(commands.Cog, name="Utility"):
 
     @app_commands.command(name="help", description="Browse all Cybork commands in an interactive menu.")
     async def help_slash(self, interaction: discord.Interaction):
-        await interaction.response.send_message(view=HelpMenuView())
+        is_owner = await _resolve_is_owner(self.bot, interaction.user.id)
+        await interaction.response.send_message(view=HelpMenuView(is_owner=is_owner))
 
     # ── Prefix Commands ───────────────────────────────────────────────────────
 
@@ -35,8 +51,8 @@ class UtilityCog(commands.Cog, name="Utility"):
     async def ping_prefix(self, ctx: commands.Context):
         latency_ms = round(self.bot.latency * 1000)
         embed = discord.Embed(
-            description=f"🏓 WebSocket latency: `{latency_ms}ms`",
-            color=discord.Color.blurple(),
+            description=f"{E.get('ping', '🏓')} WebSocket latency: `{latency_ms}ms`",
+            color=WHITE,
         )
         embed.set_footer(text="Cybork")
         await ctx.reply(embed=embed, mention_author=False)
@@ -48,7 +64,8 @@ class UtilityCog(commands.Cog, name="Utility"):
 
     @commands.command(name="help", aliases=["h", "commands"])
     async def help_prefix(self, ctx: commands.Context):
-        await ctx.reply(view=HelpMenuView(), mention_author=False)
+        is_owner = await _resolve_is_owner(self.bot, ctx.author.id)
+        await ctx.reply(view=HelpMenuView(is_owner=is_owner), mention_author=False)
 
     @commands.command(name="botinfo")
     async def botinfo_prefix(self, ctx: commands.Context):
@@ -61,16 +78,16 @@ class UtilityCog(commands.Cog, name="Utility"):
         members = sum(g.member_count or 0 for g in bot.guilds)
         cmds = len(list(bot.tree.walk_commands()))
         embed = discord.Embed(
-            title="Cybork — Bot Info",
-            color=discord.Color.from_rgb(124, 58, 237),
+            title=f"{E.get('bot', '🤖')} Cybork — Bot Info",
+            color=WHITE,
         )
         embed.set_thumbnail(url=bot.user.display_avatar.url)
-        embed.add_field(name="Latency", value=f"`{latency}ms`", inline=True)
-        embed.add_field(name="Guilds", value=f"`{guilds}`", inline=True)
-        embed.add_field(name="Members", value=f"`{members:,}`", inline=True)
-        embed.add_field(name="Commands", value=f"`{cmds}`", inline=True)
-        embed.add_field(name="discord.py", value=f"`{discord.__version__}`", inline=True)
-        embed.add_field(name="Python", value=f"`{sys.version.split()[0]}`", inline=True)
+        embed.add_field(name="Latency",    value=f"`{latency}ms`",            inline=True)
+        embed.add_field(name="Guilds",     value=f"`{guilds}`",               inline=True)
+        embed.add_field(name="Members",    value=f"`{members:,}`",            inline=True)
+        embed.add_field(name="Commands",   value=f"`{cmds}`",                 inline=True)
+        embed.add_field(name="discord.py", value=f"`{discord.__version__}`",  inline=True)
+        embed.add_field(name="Python",     value=f"`{sys.version.split()[0]}`", inline=True)
         if uptime:
             h, rem = divmod(int(uptime.total_seconds()), 3600)
             m, s = divmod(rem, 60)
@@ -86,19 +103,19 @@ class UtilityCog(commands.Cog, name="Utility"):
             return
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
-                description="❌ You don't have permission to use this command.",
+                description=f"{E.get('error', '❌')} You don't have permission to use this command.",
                 color=discord.Color.red(),
             )
             await ctx.reply(embed=embed, mention_author=False)
         elif isinstance(error, commands.BotMissingPermissions):
             embed = discord.Embed(
-                description="❌ I don't have the required permissions for this action.",
+                description=f"{E.get('error', '❌')} I don't have the required permissions for this action.",
                 color=discord.Color.red(),
             )
             await ctx.reply(embed=embed, mention_author=False)
         else:
             embed = discord.Embed(
-                description=f"❌ Error: `{error}`",
+                description=f"{E.get('error', '❌')} Error: `{error}`",
                 color=discord.Color.red(),
             )
             await ctx.reply(embed=embed, mention_author=False)
@@ -106,18 +123,17 @@ class UtilityCog(commands.Cog, name="Utility"):
 
 def _about_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="About Cybork",
+        title=f"{E.get('scan', '🔍')} About Cybork",
         description=(
             "**Cybork** is a risk intelligence tool for Discord servers.\n\n"
             "It analyzes members using multiple signal layers:\n"
-            "` → ` **Static signals** — Account age, username structure\n"
-            "` → ` **Behavioral similarity** — Pattern matching with recent joins\n"
-            "` → ` **Cluster detection** — Join timing anomaly detection\n\n"
+            f"` → ` **Static signals** — Account age, username structure\n"
+            f"` → ` **Behavioral similarity** — Pattern matching with recent joins\n"
+            f"` → ` **Cluster detection** — Join timing anomaly detection\n\n"
             "Results are *probabilistic* and should be used as indicators, not verdicts.\n\n"
-            "**Slash commands:** `/help` to browse all commands\n"
             "**Prefix commands:** `>help`, `>ping`, `>about`, `>botinfo`"
         ),
-        color=discord.Color.og_blurple(),
+        color=WHITE,
     )
     embed.set_footer(text="Cybork — Detect What Others Miss")
     return embed

@@ -5,14 +5,25 @@ from datetime import datetime, timezone
 
 import storage
 import scoring
+import emojis_loader as E
 from image_generator import generate_card
 from views import AnalysisView
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 
 def _risk_color(cls: str) -> discord.Color:
     return {"LOW": discord.Color.green(), "MEDIUM": discord.Color.yellow(), "HIGH": discord.Color.red()}.get(
         cls, discord.Color.greyple()
     )
+
+
+def _risk_emoji(cls: str) -> str:
+    return {
+        "LOW":    E.get("risk_low",    "🟢"),
+        "MEDIUM": E.get("risk_medium", "🟡"),
+        "HIGH":   E.get("risk_high",   "🔴"),
+    }.get(cls, E.get("risk_unknown", "⚪"))
 
 
 class RiskCog(commands.Cog, name="Risk"):
@@ -49,7 +60,7 @@ class RiskCog(commands.Cog, name="Risk"):
         file = discord.File(card, filename="analysis_card.png")
         top_reason = result["reasons"][0] if result["reasons"] else "No significant indicators detected."
         embed = discord.Embed(
-            title="Analysis Complete",
+            title=f"{E.get('scan', '🔍')} Analysis Complete",
             description=f"Risk scan completed for **{user.mention}**.\n*{top_reason}*",
             color=_risk_color(result["classification"]),
         )
@@ -67,11 +78,10 @@ class RiskCog(commands.Cog, name="Risk"):
 
         cls = result["classification"]
         score = result["score"]
-        cls_emoji = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}.get(cls, "⚪")
 
         embed = discord.Embed(
-            title=f"Risk Classification — {user.display_name}",
-            description=f"{cls_emoji} **{cls} RISK** — Score: `{score}/100`",
+            title=f"{_risk_emoji(cls)} Risk Classification — {user.display_name}",
+            description=f"**{cls} RISK** — Score: `{score}/100`",
             color=_risk_color(cls),
         )
         embed.set_thumbnail(url=user.display_avatar.url)
@@ -98,14 +108,17 @@ class RiskCog(commands.Cog, name="Risk"):
         alt_score = min(100, int((sim_score / 25 * 40) + (cluster_score / 26 * 35) + (min(30, max(0, 30 - age_days)) / 30 * 25)))
 
         if alt_score >= 60:
-            verdict = "🔴 Likely Alt Account"
+            verdict = f"{E.get('risk_high', '🔴')} Likely Alt Account"
             verdict_color = discord.Color.red()
+            alt_cls = "HIGH"
         elif alt_score >= 35:
-            verdict = "🟡 Possible Alt — Investigate"
+            verdict = f"{E.get('risk_medium', '🟡')} Possible Alt — Investigate"
             verdict_color = discord.Color.yellow()
+            alt_cls = "MEDIUM"
         else:
-            verdict = "🟢 Unlikely to be an Alt"
+            verdict = f"{E.get('risk_low', '🟢')} Unlikely to be an Alt"
             verdict_color = discord.Color.green()
+            alt_cls = "LOW"
 
         avatar_bytes = None
         try:
@@ -124,14 +137,14 @@ class RiskCog(commands.Cog, name="Risk"):
             display_name=user.display_name,
             user_id=str(user.id),
             score=alt_score,
-            classification="HIGH" if alt_score >= 60 else ("MEDIUM" if alt_score >= 35 else "LOW"),
+            classification=alt_cls,
             reasons=alt_reasons[:4] or ["No alt indicators detected."],
             account_age_days=age_days,
             avatar_bytes=avatar_bytes,
         )
         file = discord.File(card, filename="altsuspect.png")
         embed = discord.Embed(
-            title="Alt Account Detection",
+            title=f"{E.get('altdetect', '🔎')} Alt Account Detection",
             description=f"**{verdict}**\nAlt Probability Score: `{alt_score}/100`\n\nScanned **{user.mention}** for alt account signals.",
             color=verdict_color,
         )
@@ -156,37 +169,25 @@ class RiskCog(commands.Cog, name="Risk"):
         top_channel = interaction.guild.get_channel(int(top_channel_id)) if top_channel_id and interaction.guild else None
 
         embed = discord.Embed(
-            title=f"Behavioral Analysis — {user.display_name}",
-            color=discord.Color.blurple(),
+            title=f"{E.get('behavior', '🧠')} Behavioral Analysis — {user.display_name}",
+            color=WHITE,
         )
         embed.set_thumbnail(url=user.display_avatar.url)
 
         pattern_lines = []
         if result["breakdown"]["behavioral"] > 15:
-            pattern_lines.append("⚠️ High username similarity to recent joins detected")
+            pattern_lines.append(f"{E.get('warning', '⚠️')} High username similarity to recent joins detected")
         if result["breakdown"]["cluster"] > 15:
-            pattern_lines.append("⚠️ Join cluster anomaly — joined with a group")
+            pattern_lines.append(f"{E.get('warning', '⚠️')} Join cluster anomaly — joined with a group")
         if total_msgs == 0:
-            pattern_lines.append("⚠️ No tracked message activity (lurker behavior)")
+            pattern_lines.append(f"{E.get('warning', '⚠️')} No tracked message activity (lurker behavior)")
         if not pattern_lines:
-            pattern_lines.append("✅ No suspicious behavioral patterns detected")
+            pattern_lines.append(f"{E.get('success', '✅')} No suspicious behavioral patterns detected")
 
         embed.add_field(name="Tracked Messages", value=f"`{total_msgs:,}`", inline=True)
-        embed.add_field(
-            name="Most Active In",
-            value=f"{top_channel.mention if top_channel else 'Unknown'}",
-            inline=True,
-        )
-        embed.add_field(
-            name="Behavioral Risk Score",
-            value=f"`{result['breakdown']['behavioral']}/25`",
-            inline=True,
-        )
-        embed.add_field(
-            name="Pattern Analysis",
-            value="\n".join(pattern_lines),
-            inline=False,
-        )
+        embed.add_field(name="Most Active In", value=f"{top_channel.mention if top_channel else 'Unknown'}", inline=True)
+        embed.add_field(name="Behavioral Risk Score", value=f"`{result['breakdown']['behavioral']}/25`", inline=True)
+        embed.add_field(name="Pattern Analysis", value="\n".join(pattern_lines), inline=False)
         embed.set_footer(text="Cybork — Behavioral data collected since bot joined")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -215,14 +216,14 @@ class RiskCog(commands.Cog, name="Risk"):
         trust = max(0, min(100, base + age_bonus + tenure_bonus + boost_bonus + activity_bonus - warning_penalty - flag_penalty))
 
         if trust >= 75:
-            label, color, emoji = "HIGH TRUST", discord.Color.green(), "🟢"
+            label, color, emoji = "HIGH TRUST", discord.Color.green(), E.get("risk_low", "🟢")
         elif trust >= 45:
-            label, color, emoji = "MODERATE TRUST", discord.Color.yellow(), "🟡"
+            label, color, emoji = "MODERATE TRUST", discord.Color.yellow(), E.get("risk_medium", "🟡")
         else:
-            label, color, emoji = "LOW TRUST", discord.Color.red(), "🔴"
+            label, color, emoji = "LOW TRUST", discord.Color.red(), E.get("risk_high", "🔴")
 
         embed = discord.Embed(
-            title=f"Trust Score — {user.display_name}",
+            title=f"{E.get('trust', '⭐')} Trust Score — {user.display_name}",
             description=f"{emoji} **{label}** — `{trust}/100`",
             color=color,
         )
@@ -264,7 +265,7 @@ class RiskCog(commands.Cog, name="Risk"):
             file = discord.File(card, filename="analysis_card.png")
             top_reason = result["reasons"][0] if result["reasons"] else "No significant indicators detected."
             embed = discord.Embed(
-                title="Analysis Complete",
+                title=f"{E.get('scan', '🔍')} Analysis Complete",
                 description=f"Risk scan completed for **{user.mention}**.\n*{top_reason}*",
                 color=_risk_color(result["classification"]),
             )
@@ -280,11 +281,10 @@ class RiskCog(commands.Cog, name="Risk"):
 
             cls = result["classification"]
             score = result["score"]
-            cls_emoji = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}.get(cls, "⚪")
 
             embed = discord.Embed(
-                title=f"Risk Classification — {user.display_name}",
-                description=f"{cls_emoji} **{cls} RISK** — Score: `{score}/100`",
+                title=f"{_risk_emoji(cls)} Risk Classification — {user.display_name}",
+                description=f"**{cls} RISK** — Score: `{score}/100`",
                 color=_risk_color(cls),
             )
             embed.set_thumbnail(url=user.display_avatar.url)
@@ -309,14 +309,17 @@ class RiskCog(commands.Cog, name="Risk"):
             alt_score = min(100, int((sim_score / 25 * 40) + (cluster_score / 26 * 35) + (min(30, max(0, 30 - age_days)) / 30 * 25)))
 
             if alt_score >= 60:
-                verdict = "🔴 Likely Alt Account"
+                verdict = f"{E.get('risk_high', '🔴')} Likely Alt Account"
                 verdict_color = discord.Color.red()
+                alt_cls = "HIGH"
             elif alt_score >= 35:
-                verdict = "🟡 Possible Alt — Investigate"
+                verdict = f"{E.get('risk_medium', '🟡')} Possible Alt — Investigate"
                 verdict_color = discord.Color.yellow()
+                alt_cls = "MEDIUM"
             else:
-                verdict = "🟢 Unlikely to be an Alt"
+                verdict = f"{E.get('risk_low', '🟢')} Unlikely to be an Alt"
                 verdict_color = discord.Color.green()
+                alt_cls = "LOW"
 
             avatar_bytes = None
             try:
@@ -335,14 +338,14 @@ class RiskCog(commands.Cog, name="Risk"):
                 display_name=user.display_name,
                 user_id=str(user.id),
                 score=alt_score,
-                classification="HIGH" if alt_score >= 60 else ("MEDIUM" if alt_score >= 35 else "LOW"),
+                classification=alt_cls,
                 reasons=alt_reasons[:4] or ["No alt indicators detected."],
                 account_age_days=age_days,
                 avatar_bytes=avatar_bytes,
             )
             file = discord.File(card, filename="altsuspect.png")
             embed = discord.Embed(
-                title="Alt Account Detection",
+                title=f"{E.get('altdetect', '🔎')} Alt Account Detection",
                 description=f"**{verdict}**\nAlt Probability Score: `{alt_score}/100`\n\nScanned **{user.mention}** for alt account signals.",
                 color=verdict_color,
             )
@@ -365,20 +368,20 @@ class RiskCog(commands.Cog, name="Risk"):
             top_channel = ctx.guild.get_channel(int(top_channel_id)) if top_channel_id else None
 
             embed = discord.Embed(
-                title=f"Behavioral Analysis — {user.display_name}",
-                color=discord.Color.blurple(),
+                title=f"{E.get('behavior', '🧠')} Behavioral Analysis — {user.display_name}",
+                color=WHITE,
             )
             embed.set_thumbnail(url=user.display_avatar.url)
 
             pattern_lines = []
             if result["breakdown"]["behavioral"] > 15:
-                pattern_lines.append("⚠️ High username similarity to recent joins detected")
+                pattern_lines.append(f"{E.get('warning', '⚠️')} High username similarity to recent joins detected")
             if result["breakdown"]["cluster"] > 15:
-                pattern_lines.append("⚠️ Join cluster anomaly — joined with a group")
+                pattern_lines.append(f"{E.get('warning', '⚠️')} Join cluster anomaly — joined with a group")
             if total_msgs == 0:
-                pattern_lines.append("⚠️ No tracked message activity (lurker behavior)")
+                pattern_lines.append(f"{E.get('warning', '⚠️')} No tracked message activity (lurker behavior)")
             if not pattern_lines:
-                pattern_lines.append("✅ No suspicious behavioral patterns detected")
+                pattern_lines.append(f"{E.get('success', '✅')} No suspicious behavioral patterns detected")
 
             embed.add_field(name="Tracked Messages", value=f"`{total_msgs:,}`", inline=True)
             embed.add_field(name="Most Active In", value=f"{top_channel.mention if top_channel else 'Unknown'}", inline=True)
@@ -410,14 +413,14 @@ class RiskCog(commands.Cog, name="Risk"):
             trust = max(0, min(100, base + age_bonus + tenure_bonus + boost_bonus + activity_bonus - warning_penalty - flag_penalty))
 
             if trust >= 75:
-                label, color, emoji = "HIGH TRUST", discord.Color.green(), "🟢"
+                label, color, emoji = "HIGH TRUST", discord.Color.green(), E.get("risk_low", "🟢")
             elif trust >= 45:
-                label, color, emoji = "MODERATE TRUST", discord.Color.yellow(), "🟡"
+                label, color, emoji = "MODERATE TRUST", discord.Color.yellow(), E.get("risk_medium", "🟡")
             else:
-                label, color, emoji = "LOW TRUST", discord.Color.red(), "🔴"
+                label, color, emoji = "LOW TRUST", discord.Color.red(), E.get("risk_high", "🔴")
 
             embed = discord.Embed(
-                title=f"Trust Score — {user.display_name}",
+                title=f"{E.get('trust', '⭐')} Trust Score — {user.display_name}",
                 description=f"{emoji} **{label}** — `{trust}/100`",
                 color=color,
             )

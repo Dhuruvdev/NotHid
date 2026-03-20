@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import storage
+import emojis_loader as E
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 
 def _ts(iso: str) -> str:
@@ -26,10 +29,10 @@ class HistoryCog(commands.Cog, name="History"):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warnings(self, interaction: discord.Interaction, user: discord.Member):
         warns = storage.get_warnings(user.id, interaction.guild_id)
-        embed = discord.Embed(title=f"Warnings — {user.display_name}", color=discord.Color.yellow())
+        embed = discord.Embed(title=f"{E.get('warn_icon', '⚠️')} Warnings — {user.display_name}", color=discord.Color.yellow())
         embed.set_thumbnail(url=user.display_avatar.url)
         if not warns:
-            embed.description = "✅ This member has no warnings."
+            embed.description = f"{E.get('success', '✅')} This member has no warnings."
         else:
             embed.description = f"**{len(warns)} warning(s) on record.**"
             for i, w in enumerate(warns[-10:], 1):
@@ -48,13 +51,18 @@ class HistoryCog(commands.Cog, name="History"):
     async def history(self, interaction: discord.Interaction, user: discord.Member):
         actions = storage.get_mod_history(user.id, interaction.guild_id)
         warns = storage.get_warnings(user.id, interaction.guild_id)
-        embed = discord.Embed(title=f"Mod History — {user.display_name}", color=discord.Color.blurple())
+        embed = discord.Embed(title=f"{E.get('history', '📜')} Mod History — {user.display_name}", color=WHITE)
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.add_field(name="Total Warnings", value=f"`{len(warns)}`", inline=True)
         embed.add_field(name="Total Actions", value=f"`{len(actions)}`", inline=True)
-        action_emoji = {"WARN": "⚠️", "MUTE": "🔇", "KICK": "👢", "BAN": "🔨"}
+        action_emoji = {
+            "WARN": E.get("warn_icon", "⚠️"),
+            "MUTE": E.get("mute", "🔇"),
+            "KICK": E.get("kick", "👢"),
+            "BAN":  E.get("ban", "🔨"),
+        }
         if not actions:
-            embed.description = "✅ No moderation actions recorded."
+            embed.description = f"{E.get('success', '✅')} No moderation actions recorded."
         else:
             lines = []
             for a in actions[-10:]:
@@ -72,14 +80,14 @@ class HistoryCog(commands.Cog, name="History"):
         if note:
             entry = storage.add_note(user.id, interaction.guild_id, note, interaction.user.id)
             embed = discord.Embed(
-                title="Note Added",
+                title=f"{E.get('note', '📋')} Note Added",
                 description=f"Note `{entry['id']}` saved for **{user.display_name}**.\n\n> {note}",
-                color=discord.Color.blurple(),
+                color=WHITE,
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             existing = storage.get_notes(user.id, interaction.guild_id)
-            embed = discord.Embed(title=f"Mod Notes — {user.display_name}", color=discord.Color.blurple())
+            embed = discord.Embed(title=f"{E.get('note', '📋')} Mod Notes — {user.display_name}", color=WHITE)
             embed.set_thumbnail(url=user.display_avatar.url)
             if not existing:
                 embed.description = "No notes on file for this member."
@@ -97,7 +105,7 @@ class HistoryCog(commands.Cog, name="History"):
     async def flag(self, interaction: discord.Interaction, user: discord.Member, reason: str = "Manually flagged"):
         storage.flag_user(user.id, interaction.guild_id, reason, interaction.user.id)
         embed = discord.Embed(
-            description=f"🚩 {user.mention} has been flagged as suspicious — {reason}",
+            description=f"{E.get('flag', '🚩')} {user.mention} has been flagged as suspicious — {reason}",
             color=discord.Color.orange(),
         )
         await interaction.response.send_message(embed=embed)
@@ -108,8 +116,12 @@ class HistoryCog(commands.Cog, name="History"):
     async def unflag(self, interaction: discord.Interaction, user: discord.Member):
         removed = storage.unflag_user(user.id, interaction.guild_id)
         embed = discord.Embed(
-            description=f"✅ Flag removed from {user.mention}." if removed else f"ℹ️ {user.mention} is not currently flagged.",
-            color=discord.Color.green() if removed else discord.Color.greyple(),
+            description=(
+                f"{E.get('success', '✅')} Flag removed from {user.mention}."
+                if removed else
+                f"{E.get('info', 'ℹ️')} {user.mention} is not currently flagged."
+            ),
+            color=discord.Color.green() if removed else WHITE,
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -119,10 +131,10 @@ class HistoryCog(commands.Cog, name="History"):
     @commands.has_permissions(moderate_members=True)
     async def warnings_prefix(self, ctx: commands.Context, user: discord.Member):
         warns = storage.get_warnings(user.id, ctx.guild.id)
-        embed = discord.Embed(title=f"Warnings — {user.display_name}", color=discord.Color.yellow())
+        embed = discord.Embed(title=f"{E.get('warn_icon', '⚠️')} Warnings — {user.display_name}", color=discord.Color.yellow())
         embed.set_thumbnail(url=user.display_avatar.url)
         if not warns:
-            embed.description = "✅ This member has no warnings."
+            embed.description = f"{E.get('success', '✅')} This member has no warnings."
         else:
             embed.description = f"**{len(warns)} warning(s) on record.**"
             for i, w in enumerate(warns[-10:], 1):
@@ -140,13 +152,18 @@ class HistoryCog(commands.Cog, name="History"):
     async def history_prefix(self, ctx: commands.Context, user: discord.Member):
         actions = storage.get_mod_history(user.id, ctx.guild.id)
         warns = storage.get_warnings(user.id, ctx.guild.id)
-        embed = discord.Embed(title=f"Mod History — {user.display_name}", color=discord.Color.blurple())
+        embed = discord.Embed(title=f"{E.get('history', '📜')} Mod History — {user.display_name}", color=WHITE)
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.add_field(name="Total Warnings", value=f"`{len(warns)}`", inline=True)
         embed.add_field(name="Total Actions", value=f"`{len(actions)}`", inline=True)
-        action_emoji = {"WARN": "⚠️", "MUTE": "🔇", "KICK": "👢", "BAN": "🔨"}
+        action_emoji = {
+            "WARN": E.get("warn_icon", "⚠️"),
+            "MUTE": E.get("mute", "🔇"),
+            "KICK": E.get("kick", "👢"),
+            "BAN":  E.get("ban", "🔨"),
+        }
         if not actions:
-            embed.description = "✅ No moderation actions recorded."
+            embed.description = f"{E.get('success', '✅')} No moderation actions recorded."
         else:
             lines = []
             for a in actions[-10:]:
@@ -163,14 +180,14 @@ class HistoryCog(commands.Cog, name="History"):
         if note:
             entry = storage.add_note(user.id, ctx.guild.id, note, ctx.author.id)
             embed = discord.Embed(
-                title="Note Added",
+                title=f"{E.get('note', '📋')} Note Added",
                 description=f"Note `{entry['id']}` saved for **{user.display_name}**.\n\n> {note}",
-                color=discord.Color.blurple(),
+                color=WHITE,
             )
             await ctx.reply(embed=embed, mention_author=False)
         else:
             existing = storage.get_notes(user.id, ctx.guild.id)
-            embed = discord.Embed(title=f"Mod Notes — {user.display_name}", color=discord.Color.blurple())
+            embed = discord.Embed(title=f"{E.get('note', '📋')} Mod Notes — {user.display_name}", color=WHITE)
             embed.set_thumbnail(url=user.display_avatar.url)
             if not existing:
                 embed.description = "No notes on file for this member."
@@ -187,7 +204,7 @@ class HistoryCog(commands.Cog, name="History"):
     async def flag_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "Manually flagged"):
         storage.flag_user(user.id, ctx.guild.id, reason, ctx.author.id)
         embed = discord.Embed(
-            description=f"🚩 {user.mention} has been flagged as suspicious — {reason}",
+            description=f"{E.get('flag', '🚩')} {user.mention} has been flagged as suspicious — {reason}",
             color=discord.Color.orange(),
         )
         await ctx.reply(embed=embed, mention_author=False)
@@ -197,16 +214,20 @@ class HistoryCog(commands.Cog, name="History"):
     async def unflag_prefix(self, ctx: commands.Context, user: discord.Member):
         removed = storage.unflag_user(user.id, ctx.guild.id)
         embed = discord.Embed(
-            description=f"✅ Flag removed from {user.mention}." if removed else f"ℹ️ {user.mention} is not currently flagged.",
-            color=discord.Color.green() if removed else discord.Color.greyple(),
+            description=(
+                f"{E.get('success', '✅')} Flag removed from {user.mention}."
+                if removed else
+                f"{E.get('info', 'ℹ️')} {user.mention} is not currently flagged."
+            ),
+            color=discord.Color.green() if removed else WHITE,
         )
         await ctx.reply(embed=embed, mention_author=False)
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ You need `Moderate Members` permission.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You need `Moderate Members` permission.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"❌ Error: `{error}`", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} Error: `{error}`", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

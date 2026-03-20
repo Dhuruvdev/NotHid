@@ -7,7 +7,10 @@ from datetime import datetime, timezone
 
 import storage
 import scoring
+import emojis_loader as E
 from checks import is_owner, get_owner_id
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 EXTENSIONS = [
     "cogs.utility",
@@ -46,7 +49,11 @@ def _risk_color(cls: str) -> discord.Color:
 
 
 def _risk_emoji(cls: str) -> str:
-    return {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}.get(cls, "⚪")
+    return {
+        "LOW":    E.get("risk_low",     "🟢"),
+        "MEDIUM": E.get("risk_medium",  "🟡"),
+        "HIGH":   E.get("risk_high",    "🔴"),
+    }.get(cls, E.get("risk_unknown", "⚪"))
 
 
 class OwnerCog(commands.Cog, name="Owner"):
@@ -78,8 +85,8 @@ class OwnerCog(commands.Cog, name="Owner"):
 
         if not message.mentions:
             embed = discord.Embed(
-                description="⚠️ Usage: `np @user` — mention a member to inspect.",
-                color=discord.Color.orange(),
+                description=f"{E.get('info', 'ℹ️')} `np @user` — owner member lookup panel.",
+                color=WHITE,
             )
             await message.reply(embed=embed, mention_author=False)
             return
@@ -90,27 +97,27 @@ class OwnerCog(commands.Cog, name="Owner"):
         now = datetime.now(timezone.utc)
 
         async with message.channel.typing():
-            warnings   = storage.get_warnings(target.id, guild_id)
+            warnings    = storage.get_warnings(target.id, guild_id)
             mod_history = storage.get_mod_history(target.id, guild_id)
-            flag       = storage.get_flag(target.id, guild_id)
-            notes      = storage.get_notes(target.id, guild_id)
-            activity   = storage.get_user_activity(target.id, guild_id)
-            scan       = storage.get_scan_result(target.id, guild_id)
-            guild_hist = storage.get_guild_history(guild_id)
-            risk       = scoring.calculate_risk(target, guild_hist)
+            flag        = storage.get_flag(target.id, guild_id)
+            notes       = storage.get_notes(target.id, guild_id)
+            activity    = storage.get_user_activity(target.id, guild_id)
+            scan        = storage.get_scan_result(target.id, guild_id)
+            guild_hist  = storage.get_guild_history(guild_id)
+            risk        = scoring.calculate_risk(target, guild_hist)
 
         cls   = risk["classification"]
         score = risk["score"]
 
         embed = discord.Embed(
-            title=f"🔐 Owner Access Panel — {target}",
+            title=f"{E.get('owner', '🔐')} Owner Access Panel — {target}",
             color=_risk_color(cls),
             timestamp=now,
         )
         embed.set_thumbnail(url=target.display_avatar.url)
 
         embed.add_field(
-            name="📌 Identity",
+            name=f"{E.get('identity', '📌')} Identity",
             value=(
                 f"**ID:** `{target.id}`\n"
                 f"**Created:** {_fmt_dt(target.created_at)} (`{_age(target.created_at)}`)\n"
@@ -124,17 +131,17 @@ class OwnerCog(commands.Cog, name="Owner"):
             is_timed_out  = timeout_until and timeout_until > now
             roles         = [r for r in member.roles if not r.is_default()]
             embed.add_field(
-                name="🏠 Server",
+                name=f"{E.get('server', '🏠')} Server",
                 value=(
                     f"**Joined:** {_fmt_dt(member.joined_at)} (`{_age(member.joined_at)}`)\n"
                     f"**Top Role:** {member.top_role.mention if member.top_role and not member.top_role.is_default() else '`None`'}\n"
                     f"**Roles:** `{len(roles)}`\n"
-                    f"**Timed Out:** {'Yes ⚠️' if is_timed_out else 'No'}"
+                    f"**Timed Out:** {f'{E.get(\"warning\", \"⚠️\")} Yes' if is_timed_out else 'No'}"
                 ),
                 inline=True,
             )
         else:
-            embed.add_field(name="🏠 Server", value="*Not in this server*", inline=True)
+            embed.add_field(name=f"{E.get('server', '🏠')} Server", value="*Not in this server*", inline=True)
 
         embed.add_field(
             name=f"{_risk_emoji(cls)} Risk Assessment",
@@ -149,13 +156,13 @@ class OwnerCog(commands.Cog, name="Owner"):
 
         if risk["reasons"]:
             embed.add_field(
-                name="⚠️ Risk Indicators",
+                name=f"{E.get('warning', '⚠️')} Risk Indicators",
                 value="\n".join(f"` → ` {r}" for r in risk["reasons"][:5]),
                 inline=False,
             )
 
         embed.add_field(
-            name="📊 Activity",
+            name=f"{E.get('activity', '📊')} Activity",
             value=(
                 f"**Messages:** `{activity['total']:,}`\n"
                 f"**Last Seen:** {activity['last_seen'] or 'Not tracked'}"
@@ -164,10 +171,10 @@ class OwnerCog(commands.Cog, name="Owner"):
         )
 
         embed.add_field(
-            name="🛡️ Moderation",
+            name=f"{E.get('moderation', '🛡️')} Moderation",
             value=(
                 f"**Warnings:** `{len(warnings)}`\n"
-                f"**Flag:** {'🚩 ' + flag['reason'] if flag else '✅ Clear'}\n"
+                f"**Flag:** {f'{E.get(\"flag\", \"🚩\")} ' + flag['reason'] if flag else f'{E.get(\"success\", \"✅\")} Clear'}\n"
                 f"**Actions:** `{len(mod_history)}`\n"
                 f"**Notes:** `{len(notes)}`"
             ),
@@ -177,7 +184,7 @@ class OwnerCog(commands.Cog, name="Owner"):
         if warnings:
             lw = warnings[-1]
             embed.add_field(
-                name="📋 Last Warning",
+                name=f"{E.get('note', '📋')} Last Warning",
                 value=f"`{lw['reason']}` — by <@{lw['moderator_id']}>",
                 inline=False,
             )
@@ -189,7 +196,7 @@ class OwnerCog(commands.Cog, name="Owner"):
             except Exception:
                 scan_ago = scan.get("timestamp", "?")
             embed.add_field(
-                name="🔍 Last Scan",
+                name=f"{E.get('scan', '🔍')} Last Scan",
                 value=f"{scan_ago} — `{scan['result']['score']}/100` ({scan['result']['classification']})",
                 inline=False,
             )
@@ -214,12 +221,14 @@ class OwnerCog(commands.Cog, name="Owner"):
             self.bot.tree.copy_global_to(guild=interaction.guild)
             synced = await self.bot.tree.sync(guild=interaction.guild)
             await interaction.followup.send(
-                f"✅ Synced `{len(synced)}` command(s) to **{interaction.guild.name}** (instant).", ephemeral=True
+                f"{E.get('success', '✅')} Synced `{len(synced)}` command(s) to **{interaction.guild.name}** (instant).",
+                ephemeral=True,
             )
         else:
             synced = await self.bot.tree.sync()
             await interaction.followup.send(
-                f"✅ Synced `{len(synced)}` command(s) globally (up to 1 hour).", ephemeral=True
+                f"{E.get('success', '✅')} Synced `{len(synced)}` command(s) globally (up to 1 hour).",
+                ephemeral=True,
             )
 
     # ── Reload ───────────────────────────────────────────────────────────────
@@ -234,17 +243,17 @@ class OwnerCog(commands.Cog, name="Owner"):
             for ext in EXTENSIONS:
                 try:
                     await self.bot.reload_extension(ext)
-                    results.append(f"✅ `{ext}`")
+                    results.append(f"{E.get('success', '✅')} `{ext}`")
                 except Exception as e:
-                    results.append(f"❌ `{ext}` — {e}")
+                    results.append(f"{E.get('error', '❌')} `{ext}` — {e}")
             await interaction.followup.send("\n".join(results), ephemeral=True)
         else:
             ext = f"cogs.{extension}" if not extension.startswith("cogs.") else extension
             try:
                 await self.bot.reload_extension(ext)
-                await interaction.followup.send(f"✅ Reloaded `{ext}`.", ephemeral=True)
+                await interaction.followup.send(f"{E.get('success', '✅')} Reloaded `{ext}`.", ephemeral=True)
             except Exception as e:
-                await interaction.followup.send(f"❌ Failed: `{ext}`\n```{e}```", ephemeral=True)
+                await interaction.followup.send(f"{E.get('error', '❌')} Failed: `{ext}`\n```{e}```", ephemeral=True)
 
     # ── Status ───────────────────────────────────────────────────────────────
 
@@ -266,7 +275,7 @@ class OwnerCog(commands.Cog, name="Owner"):
         }
         await self.bot.change_presence(activity=discord.Activity(type=types[kind], name=text))
         await interaction.response.send_message(
-            f"✅ Status → **{kind.capitalize()}** `{text}`.", ephemeral=True
+            f"{E.get('success', '✅')} Status → **{kind.capitalize()}** `{text}`.", ephemeral=True
         )
 
     # ── Bot Info ─────────────────────────────────────────────────────────────
@@ -285,8 +294,8 @@ class OwnerCog(commands.Cog, name="Owner"):
         owner_id = get_owner_id()
 
         embed = discord.Embed(
-            title="Cybork — Bot Info",
-            color=discord.Color.from_rgb(124, 58, 237),
+            title=f"{E.get('owner', '🔐')} Cybork — Bot Info",
+            color=WHITE,
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_thumbnail(url=bot.user.display_avatar.url)
@@ -318,14 +327,18 @@ class OwnerCog(commands.Cog, name="Owner"):
         )
         embed.set_footer(text="Cybork Announcement")
         await channel.send(embed=embed)
-        await interaction.response.send_message(f"✅ Announcement sent to {channel.mention}.", ephemeral=True)
+        await interaction.response.send_message(
+            f"{E.get('success', '✅')} Announcement sent to {channel.mention}.", ephemeral=True
+        )
 
     # ── Shutdown ─────────────────────────────────────────────────────────────
 
     @app_commands.command(name="shutdown", description="[Owner] Gracefully shut down the bot.")
     @is_owner()
     async def shutdown(self, interaction: discord.Interaction):
-        await interaction.response.send_message("⚠️ Shutting down Cybork...", ephemeral=True)
+        await interaction.response.send_message(
+            f"{E.get('warning', '⚠️')} Shutting down Cybork...", ephemeral=True
+        )
         await self.bot.close()
 
     # ── Error Handler ─────────────────────────────────────────────────────────
@@ -333,10 +346,12 @@ class OwnerCog(commands.Cog, name="Owner"):
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message(
-                "🔒 This command is restricted to the bot owner.", ephemeral=True
+                f"{E.get('lock', '🔒')} This command is restricted to the bot owner.", ephemeral=True
             )
         else:
-            await interaction.response.send_message(f"❌ Error: `{error}`", ephemeral=True)
+            await interaction.response.send_message(
+                f"{E.get('error', '❌')} Error: `{error}`", ephemeral=True
+            )
 
 
 async def setup(bot: commands.Bot):

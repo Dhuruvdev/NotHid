@@ -6,6 +6,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import storage
+import emojis_loader as E
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 
 def parse_duration(text: str) -> Optional[timedelta]:
@@ -79,7 +82,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warn(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         if not _hierarchy_ok(interaction, user):
-            await interaction.response.send_message("❌ You cannot warn that member.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You cannot warn that member.", ephemeral=True)
             return
 
         entry = storage.add_warning(user.id, interaction.guild_id, reason, interaction.user.id)
@@ -87,7 +90,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         total = len(storage.get_warnings(user.id, interaction.guild_id))
 
         embed = discord.Embed(
-            title="⚠️ Warning Issued",
+            title=f"{E.get('warn_icon', '⚠️')} Warning Issued",
             color=discord.Color.yellow(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -100,11 +103,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await interaction.response.send_message(embed=embed)
 
         try:
-            dm_embed = discord.Embed(
-                description=f"⚠️ You received a warning in **{interaction.guild.name}**\n**Reason:** {reason}",
+            await user.send(embed=discord.Embed(
+                description=f"{E.get('warn_icon', '⚠️')} You received a warning in **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.yellow(),
-            )
-            await user.send(embed=dm_embed)
+            ))
         except Exception:
             pass
 
@@ -117,13 +119,13 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def mute(self, interaction: discord.Interaction, user: discord.Member, duration: str, reason: str = "No reason provided"):
         if not _hierarchy_ok(interaction, user):
-            await interaction.response.send_message("❌ You cannot mute that member.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You cannot mute that member.", ephemeral=True)
             return
 
         td = parse_duration(duration)
         if not td or td.total_seconds() > 2419200:
             await interaction.response.send_message(
-                "❌ Invalid duration. Use formats like `10m`, `2h`, `1d`. Max: 28 days.", ephemeral=True
+                f"{E.get('error', '❌')} Invalid duration. Use formats like `10m`, `2h`, `1d`. Max: 28 days.", ephemeral=True
             )
             return
 
@@ -132,7 +134,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         storage.add_mod_action(user.id, interaction.guild_id, "MUTE", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="🔇 Member Muted",
+            title=f"{E.get('mute', '🔇')} Member Muted",
             color=discord.Color.orange(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -152,13 +154,13 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(kick_members=True)
     async def kick(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         if not _hierarchy_ok(interaction, user):
-            await interaction.response.send_message("❌ You cannot kick that member.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You cannot kick that member.", ephemeral=True)
             return
 
         storage.add_mod_action(user.id, interaction.guild_id, "KICK", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="👢 Member Kicked",
+            title=f"{E.get('kick', '👢')} Member Kicked",
             color=discord.Color.red(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -171,7 +173,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await interaction.response.send_message(embed=embed)
         try:
             await user.send(embed=discord.Embed(
-                description=f"👢 You were kicked from **{interaction.guild.name}**\n**Reason:** {reason}",
+                description=f"{E.get('kick', '👢')} You were kicked from **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.red(),
             ))
         except Exception:
@@ -186,14 +188,14 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(ban_members=True)
     async def ban(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided", delete_days: int = 0):
         if not _hierarchy_ok(interaction, user):
-            await interaction.response.send_message("❌ You cannot ban that member.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You cannot ban that member.", ephemeral=True)
             return
 
         delete_days = max(0, min(7, delete_days))
         storage.add_mod_action(user.id, interaction.guild_id, "BAN", reason, interaction.user.id)
 
         embed = discord.Embed(
-            title="🔨 Member Banned",
+            title=f"{E.get('ban', '🔨')} Member Banned",
             color=discord.Color.dark_red(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -207,7 +209,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await interaction.response.send_message(embed=embed)
         try:
             await user.send(embed=discord.Embed(
-                description=f"🔨 You were banned from **{interaction.guild.name}**\n**Reason:** {reason}",
+                description=f"{E.get('ban', '🔨')} You were banned from **{interaction.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.dark_red(),
             ))
         except Exception:
@@ -226,7 +228,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite.send_messages = False
         await ch.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
         embed = discord.Embed(
-            description=f"🔒 {ch.mention} has been **locked** — {reason}",
+            description=f"{E.get('lock', '🔒')} {ch.mention} has been **locked** — {reason}",
             color=discord.Color.red(),
         )
         await interaction.response.send_message(embed=embed)
@@ -240,7 +242,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite.send_messages = None
         await ch.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
         embed = discord.Embed(
-            description=f"🔓 {ch.mention} has been **unlocked** — {reason}",
+            description=f"{E.get('unlock', '🔓')} {ch.mention} has been **unlocked** — {reason}",
             color=discord.Color.green(),
         )
         await interaction.response.send_message(embed=embed)
@@ -252,8 +254,12 @@ class ModerationCog(commands.Cog, name="Moderation"):
         ch = channel or interaction.channel
         seconds = max(0, min(21600, seconds))
         await ch.edit(slowmode_delay=seconds)
-        desc = f"⏱ Slowmode **disabled** in {ch.mention}." if seconds == 0 else f"⏱ Slowmode set to `{seconds}s` in {ch.mention}."
-        embed = discord.Embed(description=desc, color=discord.Color.blurple())
+        desc = (
+            f"{E.get('success', '✅')} Slowmode **disabled** in {ch.mention}."
+            if seconds == 0 else
+            f"{E.get('info', 'ℹ️')} Slowmode set to `{seconds}s` in {ch.mention}."
+        )
+        embed = discord.Embed(description=desc, color=WHITE)
         await interaction.response.send_message(embed=embed)
 
     # ── Server Filters ────────────────────────────────────────────────────────
@@ -263,7 +269,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def antispam(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, antispam=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Anti-spam protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -275,7 +281,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def antilink(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, antilink=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Anti-link protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -287,7 +293,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def capsfilter(self, interaction: discord.Interaction, enabled: bool):
         storage.set_server_config(interaction.guild_id, capsfilter=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Caps filter is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -300,12 +306,12 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @commands.has_permissions(moderate_members=True)
     async def warn_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
         if not _hierarchy_ok_ctx(ctx, user):
-            await ctx.reply("❌ You cannot warn that member.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} You cannot warn that member.", mention_author=False)
             return
         entry = storage.add_warning(user.id, ctx.guild.id, reason, ctx.author.id)
         storage.add_mod_action(user.id, ctx.guild.id, "WARN", reason, ctx.author.id)
         total = len(storage.get_warnings(user.id, ctx.guild.id))
-        embed = discord.Embed(title="⚠️ Warning Issued", color=discord.Color.yellow(), timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(title=f"{E.get('warn_icon', '⚠️')} Warning Issued", color=discord.Color.yellow(), timestamp=datetime.now(timezone.utc))
         embed.add_field(name="Member", value=user.mention, inline=True)
         embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
         embed.add_field(name="Total Warnings", value=f"`{total}`", inline=True)
@@ -315,7 +321,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await ctx.reply(embed=embed, mention_author=False)
         try:
             await user.send(embed=discord.Embed(
-                description=f"⚠️ You received a warning in **{ctx.guild.name}**\n**Reason:** {reason}",
+                description=f"{E.get('warn_icon', '⚠️')} You received a warning in **{ctx.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.yellow(),
             ))
         except Exception:
@@ -326,16 +332,16 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @commands.has_permissions(moderate_members=True)
     async def mute_prefix(self, ctx: commands.Context, user: discord.Member, duration: str, *, reason: str = "No reason provided"):
         if not _hierarchy_ok_ctx(ctx, user):
-            await ctx.reply("❌ You cannot mute that member.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} You cannot mute that member.", mention_author=False)
             return
         td = parse_duration(duration)
         if not td or td.total_seconds() > 2419200:
-            await ctx.reply("❌ Invalid duration. Use formats like `10m`, `2h`, `1d`. Max: 28 days.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} Invalid duration. Use formats like `10m`, `2h`, `1d`. Max: 28 days.", mention_author=False)
             return
         until = datetime.now(timezone.utc) + td
         await user.timeout(until, reason=reason)
         storage.add_mod_action(user.id, ctx.guild.id, "MUTE", reason, ctx.author.id)
-        embed = discord.Embed(title="🔇 Member Muted", color=discord.Color.orange(), timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(title=f"{E.get('mute', '🔇')} Member Muted", color=discord.Color.orange(), timestamp=datetime.now(timezone.utc))
         embed.add_field(name="Member", value=user.mention, inline=True)
         embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
         embed.add_field(name="Duration", value=f"`{_duration_label(td)}`", inline=True)
@@ -349,10 +355,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @commands.has_permissions(kick_members=True)
     async def kick_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
         if not _hierarchy_ok_ctx(ctx, user):
-            await ctx.reply("❌ You cannot kick that member.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} You cannot kick that member.", mention_author=False)
             return
         storage.add_mod_action(user.id, ctx.guild.id, "KICK", reason, ctx.author.id)
-        embed = discord.Embed(title="👢 Member Kicked", color=discord.Color.red(), timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(title=f"{E.get('kick', '👢')} Member Kicked", color=discord.Color.red(), timestamp=datetime.now(timezone.utc))
         embed.add_field(name="Member", value=f"{user} (`{user.id}`)", inline=True)
         embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
@@ -361,7 +367,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await ctx.reply(embed=embed, mention_author=False)
         try:
             await user.send(embed=discord.Embed(
-                description=f"👢 You were kicked from **{ctx.guild.name}**\n**Reason:** {reason}",
+                description=f"{E.get('kick', '👢')} You were kicked from **{ctx.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.red(),
             ))
         except Exception:
@@ -373,10 +379,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
     @commands.has_permissions(ban_members=True)
     async def ban_prefix(self, ctx: commands.Context, user: discord.Member, *, reason: str = "No reason provided"):
         if not _hierarchy_ok_ctx(ctx, user):
-            await ctx.reply("❌ You cannot ban that member.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} You cannot ban that member.", mention_author=False)
             return
         storage.add_mod_action(user.id, ctx.guild.id, "BAN", reason, ctx.author.id)
-        embed = discord.Embed(title="🔨 Member Banned", color=discord.Color.dark_red(), timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(title=f"{E.get('ban', '🔨')} Member Banned", color=discord.Color.dark_red(), timestamp=datetime.now(timezone.utc))
         embed.add_field(name="Member", value=f"{user} (`{user.id}`)", inline=True)
         embed.add_field(name="Moderator", value=ctx.author.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
@@ -385,7 +391,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         await ctx.reply(embed=embed, mention_author=False)
         try:
             await user.send(embed=discord.Embed(
-                description=f"🔨 You were banned from **{ctx.guild.name}**\n**Reason:** {reason}",
+                description=f"{E.get('ban', '🔨')} You were banned from **{ctx.guild.name}**\n**Reason:** {reason}",
                 color=discord.Color.dark_red(),
             ))
         except Exception:
@@ -400,7 +406,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.send_messages = False
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=reason)
-        embed = discord.Embed(description=f"🔒 {ch.mention} has been **locked** — {reason}", color=discord.Color.red())
+        embed = discord.Embed(description=f"{E.get('lock', '🔒')} {ch.mention} has been **locked** — {reason}", color=discord.Color.red())
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="unlock")
@@ -410,7 +416,7 @@ class ModerationCog(commands.Cog, name="Moderation"):
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.send_messages = None
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=reason)
-        embed = discord.Embed(description=f"🔓 {ch.mention} has been **unlocked** — {reason}", color=discord.Color.green())
+        embed = discord.Embed(description=f"{E.get('unlock', '🔓')} {ch.mention} has been **unlocked** — {reason}", color=discord.Color.green())
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="slowmode")
@@ -419,8 +425,12 @@ class ModerationCog(commands.Cog, name="Moderation"):
         ch = channel or ctx.channel
         seconds = max(0, min(21600, seconds))
         await ch.edit(slowmode_delay=seconds)
-        desc = f"⏱ Slowmode **disabled** in {ch.mention}." if seconds == 0 else f"⏱ Slowmode set to `{seconds}s` in {ch.mention}."
-        embed = discord.Embed(description=desc, color=discord.Color.blurple())
+        desc = (
+            f"{E.get('success', '✅')} Slowmode **disabled** in {ch.mention}."
+            if seconds == 0 else
+            f"{E.get('info', 'ℹ️')} Slowmode set to `{seconds}s` in {ch.mention}."
+        )
+        embed = discord.Embed(description=desc, color=WHITE)
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="antispam")
@@ -428,10 +438,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
     async def antispam_prefix(self, ctx: commands.Context, toggle: str):
         enabled = _parse_bool(toggle)
         if enabled is None:
-            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} Use `on` or `off`.", mention_author=False)
             return
         storage.set_server_config(ctx.guild.id, antispam=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Anti-spam protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -443,10 +453,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
     async def antilink_prefix(self, ctx: commands.Context, toggle: str):
         enabled = _parse_bool(toggle)
         if enabled is None:
-            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} Use `on` or `off`.", mention_author=False)
             return
         storage.set_server_config(ctx.guild.id, antilink=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Anti-link protection is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -458,10 +468,10 @@ class ModerationCog(commands.Cog, name="Moderation"):
     async def capsfilter_prefix(self, ctx: commands.Context, toggle: str):
         enabled = _parse_bool(toggle)
         if enabled is None:
-            await ctx.reply("❌ Use `on` or `off`.", mention_author=False)
+            await ctx.reply(f"{E.get('error', '❌')} Use `on` or `off`.", mention_author=False)
             return
         storage.set_server_config(ctx.guild.id, capsfilter=enabled)
-        icon = "✅" if enabled else "❌"
+        icon = E.get("success", "✅") if enabled else E.get("error", "❌")
         embed = discord.Embed(
             description=f"{icon} Caps filter is now **{'enabled' if enabled else 'disabled'}**.",
             color=discord.Color.green() if enabled else discord.Color.red(),
@@ -472,11 +482,11 @@ class ModerationCog(commands.Cog, name="Moderation"):
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} You don't have permission to use this command.", ephemeral=True)
         elif isinstance(error, app_commands.BotMissingPermissions):
-            await interaction.response.send_message("❌ I don't have the required permissions for this action.", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} I don't have the required permissions for this action.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"❌ An error occurred: `{error}`", ephemeral=True)
+            await interaction.response.send_message(f"{E.get('error', '❌')} An error occurred: `{error}`", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

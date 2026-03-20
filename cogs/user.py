@@ -4,7 +4,10 @@ from discord import app_commands
 from datetime import datetime, timezone
 
 import storage
+import emojis_loader as E
 from image_generator import generate_profile_card, generate_activity_card
+
+WHITE = discord.Color.from_rgb(255, 255, 255)
 
 
 def _humanize_delta(days: int) -> str:
@@ -131,7 +134,10 @@ class UserCog(commands.Cog, name="User"):
         await interaction.response.defer(thinking=True)
         card, top_role_color = await _make_profile(user, interaction.guild_id)
         file = discord.File(card, filename="profile.png")
-        embed = discord.Embed(title=f"Profile — {user.display_name}", color=discord.Color.from_rgb(*top_role_color))
+        embed = discord.Embed(
+            title=f"{E.get('profile', '🪪')} Profile — {user.display_name}",
+            color=discord.Color.from_rgb(*top_role_color),
+        )
         embed.set_image(url="attachment://profile.png")
         embed.set_footer(text="Cybork — Detect What Others Miss")
         await interaction.followup.send(embed=embed, file=file)
@@ -142,7 +148,10 @@ class UserCog(commands.Cog, name="User"):
         await interaction.response.defer(thinking=True)
         card = await _make_activity(user, interaction.guild_id, interaction.guild)
         file = discord.File(card, filename="activity.png")
-        embed = discord.Embed(title=f"Activity Report — {user.display_name}", color=discord.Color.blurple())
+        embed = discord.Embed(
+            title=f"{E.get('activity', '📊')} Activity Report — {user.display_name}",
+            color=WHITE,
+        )
         embed.set_image(url="attachment://activity.png")
         embed.set_footer(text="Cybork tracks messages since the bot joined  ·  Data resets on rejoin")
         await interaction.followup.send(embed=embed, file=file)
@@ -154,7 +163,10 @@ class UserCog(commands.Cog, name="User"):
         async with ctx.typing():
             card, top_role_color = await _make_profile(user, ctx.guild.id)
             file = discord.File(card, filename="profile.png")
-            embed = discord.Embed(title=f"Profile — {user.display_name}", color=discord.Color.from_rgb(*top_role_color))
+            embed = discord.Embed(
+                title=f"{E.get('profile', '🪪')} Profile — {user.display_name}",
+                color=discord.Color.from_rgb(*top_role_color),
+            )
             embed.set_image(url="attachment://profile.png")
             embed.set_footer(text="Cybork — Detect What Others Miss")
             await ctx.reply(embed=embed, file=file, mention_author=False)
@@ -164,7 +176,10 @@ class UserCog(commands.Cog, name="User"):
         async with ctx.typing():
             card = await _make_activity(user, ctx.guild.id, ctx.guild)
             file = discord.File(card, filename="activity.png")
-            embed = discord.Embed(title=f"Activity Report — {user.display_name}", color=discord.Color.blurple())
+            embed = discord.Embed(
+                title=f"{E.get('activity', '📊')} Activity Report — {user.display_name}",
+                color=WHITE,
+            )
             embed.set_image(url="attachment://activity.png")
             embed.set_footer(text="Cybork tracks messages since the bot joined  ·  Data resets on rejoin")
             await ctx.reply(embed=embed, file=file, mention_author=False)
