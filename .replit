@@ -31,10 +31,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "NotHide Bot"
+args = "Cybork Bot"
 
 [[workflows.workflow]]
-name = "NotHide Bot"
+name = "Cybork Bot"
 author = "agent"
 
 [[workflows.workflow.tasks]]
