@@ -1,0 +1,114 @@
+{
+  "join_history": [
+    {
+      "user_id": "1359354645293568131",
+      "username": "icyyzordus",
+      "guild_id": "1354938391447208087",
+      "joined_at": "2026-03-20T14:36:21.644283+00:00",
+      "account_created": "2025-04-09T02:30:03.026000+00:00"
+    }
+  ],
+  "scan_history": {
+    "1422892168904966226:251138693887164416": {
+      "timestamp": "2026-03-20T14:38:10.766074+00:00",
+      "result": {
+        "score": 10,
+        "classification": "LOW",
+        "reasons": [
+          "Username appears algorithmically generated"
+        ],
+        "breakdown": {
+          "static": 10,
+          "behavioral": 0,
+          "cluster": 0
+        },
+        "details": {
+          "account_age_days": 3403,
+          "username": "b3xt",
+          "display_name": "!   G\u1d1c\u029f\u1d00\u0299 J\u1d00\u1d0d\u1d1c\u0274"
+        }
+      }
+    },
+    "1422892168904966226:1416631870371926087": {
+      "timestamp": "2026-03-20T14:39:36.592127+00:00",
+      "result": {
+        "score": 10,
+        "classification": "LOW",
+        "reasons": [
+          "Username appears algorithmically generated"
+        ],
+        "breakdown": {
+          "static": 10,
+          "behavioral": 0,
+          "cluster": 0
+        },
+        "details": {
+          "account_age_days": 187,
+          "username": "sendsaw",
+          "display_name": "saw"
+        }
+      }
+    },
+    "1422892168904966226:1019082814420963371": {
+      "timestamp": "2026-03-20T14:40:13.762316+00:00",
+      "result": {
+        "score": 10,
+        "classification": "LOW",
+        "reasons": [
+          "Username appears algorithmically generated"
+        ],
+        "breakdown": {
+          "static": 10,
+          "behavioral": 0,
+          "cluster": 0
+        },
+        "details": {
+          "account_age_days": 1284,
+          "username": "BlaZe",
+          "display_name": "BlaZe"
+        }
+      }
+    },
+    "1354938391447208087:1436355528254165003": {
+      "timestamp": "2026-03-20T14:52:47.807865+00:00",
+      "result": {
+        "score": 14,
+        "classification": "LOW",
+        "reasons": [
+          "Username appears algorithmically generated"
+        ],
+        "breakdown": {
+          "static": 14,
+          "behavioral": 0,
+          "cluster": 0
+        },
+        "details": {
+          "account_age_days": 133,
+          "username": "hvn.keshav",
+          "display_name": "Kaju pista barfi"
+        }
+      }
+    },
+    "1354938391447208087:1479405289479471146": {
+      "timestamp": "2026-03-20T14:53:36.633696+00:00",
+      "result": {
+        "score": 26,
+        "classification": "LOW",
+        "reasons": [
+          "Account created 14d ago \u2014 recently created",
+          "Username appears algorithmically generated"
+        ],
+        "breakdown": {
+          "static": 26,
+          "behavioral": 0,
+          "cluster": 0
+        },
+        "details": {
+          "account_age_days": 14,
+          "username": "arz_yuki",
+          "display_name": "!       Yuki"
+        }
+      }
+    }
+  }
+}

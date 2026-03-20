@@ -8,6 +8,7 @@ import storage
 import scoring
 from image_generator import generate_card
 from views import AnalysisView
+from help_view import HelpMenuView
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,6 +36,7 @@ class NotHideBot(commands.Bot):
         self.tree.add_command(scan_command)
         self.tree.add_command(ping_command)
         self.tree.add_command(about_command)
+        self.tree.add_command(help_command)
 
         if GUILD_ID:
             guild_obj = discord.Object(id=int(GUILD_ID))
@@ -147,6 +149,11 @@ async def about_command(interaction: discord.Interaction):
     )
     embed.set_footer(text="NotHide — Detect What Others Miss")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@app_commands.command(name="help", description="Browse all NotHide commands in an interactive menu.")
+async def help_command(interaction: discord.Interaction):
+    await interaction.response.send_message(view=HelpMenuView())
 
 
 if __name__ == "__main__":
